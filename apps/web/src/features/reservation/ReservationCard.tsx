@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Cake, Crown, Globe, Phone, Footprints, UserRound, Utensils, Wine, Ban } from 'lucide-react';
+import { Cake, Crown, Globe, Phone, Footprints, UserRound, Ban } from 'lucide-react';
+import { PurposeIcon } from './PurposeIcon';
 import { phoneCountry, type ReservationDto } from '@hostly/shared';
 import { guestName } from '@/lib/day';
 import { fmtTime } from '@/lib/time';
@@ -72,7 +73,9 @@ export function ReservationCard({
           </div>
           <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm text-muted">
             <span className="text-muted">{SOURCE_ICON[r.source]}</span>
-            {r.purpose === 'drink' ? <Wine size={14} /> : <Utensils size={14} />}
+            <span title={t(`purpose.${r.purpose}`)}>
+              <PurposeIcon purpose={r.purpose} />
+            </span>
             {(r.tags.includes('birthday') || r.extras.cake) && <Cake size={14} className="text-pink-400" />}
             {[...r.tags, ...r.dietary].slice(0, 3).map((tag) => (
               <span key={tag} className="rounded bg-surface-3 px-1.5 text-[11px] text-text">

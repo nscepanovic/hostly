@@ -20,7 +20,7 @@ export const ACTIVE_STATUSES: readonly ReservationStatus[] = ['pending', 'confir
 export const RESERVATION_SOURCES = ['online', 'phone', 'walk_in', 'staff'] as const;
 export type ReservationSource = (typeof RESERVATION_SOURCES)[number];
 
-export const PURPOSES = ['food', 'drink'] as const;
+export const PURPOSES = ['food', 'drink', 'food_drink'] as const;
 export type Purpose = (typeof PURPOSES)[number];
 
 export const CUSTOMER_TYPES = ['regular', 'vip', 'svip', 'blacklisted'] as const;

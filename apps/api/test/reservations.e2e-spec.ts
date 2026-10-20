@@ -79,6 +79,14 @@ describe('reservations (e2e)', () => {
       await host.post('/api/reservations', { arrivalAt: at('07:00'), covers: 2, lastName: 'Early', force: true }).expect(201);
     });
 
+    it('accepts food, drink, or food and drink as purpose', async () => {
+      for (const purpose of ['food', 'drink', 'food_drink']) {
+        const r: ReservationDto = (await host.post('/api/reservations', { arrivalAt: at('16:30'), covers: 2, lastName: purpose, purpose, force: true }).expect(201)).body;
+        expect(r.purpose).toBe(purpose);
+      }
+      await host.post('/api/reservations', { arrivalAt: at('16:30'), covers: 2, purpose: 'brunch' }).expect(400);
+    });
+
     it('creates new customers from new phone numbers', async () => {
       const r = (await host.post('/api/reservations', { arrivalAt: at('13:00'), covers: 2, lastName: 'Novak', phone: '+385 91 234 5678' }).expect(201))
         .body as ReservationDto;

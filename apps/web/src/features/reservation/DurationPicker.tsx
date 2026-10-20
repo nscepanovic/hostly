@@ -58,12 +58,14 @@ export function DurationPicker({
           <span className={`text-sm ${invalid ? 'font-semibold text-danger' : 'text-muted'}`}>
             {invalid
               ? t('reservation.endBeforeStart')
-              : `${t('reservation.endsAt')}: ${form.endMode === 'auto' ? '~' : ''}${end.toFormat(sameDay ? 'HH:mm' : 'ccc dd.LL. HH:mm')}${lasts ? ` (${fmtDuration(lasts)})` : ''}`}
+              : form.endMode === 'auto'
+                ? `${t('reservation.endsAt')}: ${t('reservation.endsAtOpen', { time: `~${end.toFormat(sameDay ? 'HH:mm' : 'ccc dd.LL. HH:mm')}` })}`
+                : `${t('reservation.endsAt')}: ${end.toFormat(sameDay ? 'HH:mm' : 'ccc dd.LL. HH:mm')}${lasts ? ` (${fmtDuration(lasts)})` : ''}`}
           </span>
         )}
       </div>
       <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
-        <button type="button" className={chip(form.endMode === 'auto')} onClick={() => set('endMode', 'auto')} title={t('reservation.endAutoHint')}>
+        <button type="button" className={chip(form.endMode === 'auto')} onClick={() => set('endMode', 'auto')} title={t('reservation.endAutoHint', { duration: fmtDuration(estimateMin) })}>
           {t('reservation.endAuto')} · ~{fmtDuration(estimateMin)}
         </button>
         {DURATION_CHIPS.map((m) => (
@@ -83,7 +85,7 @@ export function DurationPicker({
           {t('reservation.endCustom')}
         </button>
       </div>
-      {form.endMode === 'auto' && <p className="mt-1 text-xs text-muted">{t('reservation.endAutoHint')}</p>}
+      {form.endMode === 'auto' && <p className="mt-1 text-xs text-muted">{t('reservation.endAutoHint', { duration: fmtDuration(estimateMin) })}</p>}
       {form.endMode === 'custom' && (
         <div className="mt-2 grid grid-cols-2 gap-3 sm:max-w-md">
           <label className="min-w-0">

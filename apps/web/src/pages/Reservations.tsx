@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowDown, ArrowUp, Utensils, Wine } from 'lucide-react';
+import { ArrowDown, ArrowUp } from 'lucide-react';
+import { PurposeIcon } from '@/features/reservation/PurposeIcon';
 import { phoneCountry, type ReservationDto } from '@hostly/shared';
 import { guestName, useDayReservations } from '@/lib/day';
 import { useTables } from '@/lib/queries';
@@ -127,7 +128,9 @@ export default function ReservationsPage() {
                             onClick={() => openReservation(r.id)}
                             className="h-13 cursor-pointer border-b border-border/60 last:border-0 hover:bg-surface-2"
                           >
-                            <td className="px-2 text-muted">{r.purpose === 'drink' ? <Wine size={18} /> : <Utensils size={18} />}</td>
+                            <td className="px-2 text-muted" title={t(`purpose.${r.purpose}`)}>
+                              <PurposeIcon purpose={r.purpose} size={18} />
+                            </td>
                             <td className="px-2">
                               <div className="flex items-center gap-1.5">
                                 <span className="font-semibold">{guestName(r)}</span>
@@ -138,7 +141,7 @@ export default function ReservationsPage() {
                             <td className="px-2 text-right font-bold tabular-nums">{r.covers}</td>
                             <td className={`px-2 whitespace-nowrap ${labels(r) ? '' : 'font-semibold text-warn'}`}>{labels(r) || t('topbar.withoutTable')}</td>
                             <td className="px-2 tabular-nums">{fmtTime(r.arrivalAt, tz)}</td>
-                            <td className="px-2 text-muted tabular-nums" title={r.departureEstimated ? t('reservation.endAutoHint') : undefined}>
+                            <td className="px-2 text-muted tabular-nums" title={r.departureEstimated ? t('reservation.endAuto') : undefined}>
                               {r.departureEstimated ? '~' : ''}
                               {fmtTime(r.departureAt, tz)}
                             </td>
