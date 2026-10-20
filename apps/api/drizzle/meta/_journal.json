@@ -29,6 +29,13 @@
       "when": 1792516357188,
       "tag": "0003_encrypt_personal_data",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792516693691,
+      "tag": "0004_admin",
+      "breakpoints": true
     }
   ]
 }

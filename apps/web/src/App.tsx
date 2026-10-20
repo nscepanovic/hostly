@@ -22,6 +22,7 @@ const OnlinePage = lazy(() => import('./pages/Online'));
 const SettingsPage = lazy(() => import('./pages/Settings'));
 const BookPage = lazy(() => import('./pages/public/Book'));
 const GuestReservationPage = lazy(() => import('./pages/public/GuestReservation'));
+const AdminApp = lazy(() => import('./admin/AdminApp'));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -82,6 +83,7 @@ export function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/book/:slug" element={<BookPage />} />
             <Route path="/r/:token" element={<GuestReservationPage />} />
+            <Route path="/admin/*" element={<AdminApp />} />
             <Route path="/editor" element={<OwnerOnly><EditorPage /></OwnerOnly>} />
             <Route element={<Protected />}>
               <Route index element={<FloorPage />} />

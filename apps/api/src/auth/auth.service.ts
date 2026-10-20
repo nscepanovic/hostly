@@ -1,11 +1,11 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import bcrypt from 'bcryptjs';
 import { and, eq } from 'drizzle-orm';
 import { emailIndex } from '../common/crypto';
 import type { UserDto } from '@hostly/shared';
 import { InjectDb, type Db } from '../db/db.module';
-import { users, type UserRow } from '../db/schema';
+import { restaurants, users, type UserRow } from '../db/schema';
 import type { AuthUser } from '../common/decorators';
 
 /** Ids only: the token is signed, not encrypted, so it carries no personal data. */
@@ -37,7 +37,13 @@ export class AuthService {
     // Compare against a dummy hash when the user is missing so timing does not leak which emails exist.
     const ok = await bcrypt.compare(password, user?.passwordHash ?? '$2b$10$invalidinvalidinvalidinvalidinvalidinvalidinvalidinva');
     if (!user || !ok) throw new UnauthorizedException('Invalid email or password');
+    if (await this.isSuspended(user.restaurantId)) throw new ForbiddenException('This restaurant account is suspended. Contact Hostly support.');
     return { user: toUserDto(user), token: await this.sign(user) };
+  }
+
+  private async isSuspended(restaurantId: string) {
+    const [r] = await this.db.select({ suspendedAt: restaurants.suspendedAt }).from(restaurants).where(eq(restaurants.id, restaurantId));
+    return !r || r.suspendedAt !== null;
   }
 
   sign(user: UserRow): Promise<string> {
@@ -56,11 +62,15 @@ export class AuthService {
     } catch {
       return null;
     }
-    const [user] = await this.db
-      .select()
+    // Ids only from the token; the user (and their restaurant not being suspended) is re-checked every time.
+    if (typeof p.sub !== 'string' || typeof p.rid !== 'string') return null;
+    const [row] = await this.db
+      .select({ user: users, suspendedAt: restaurants.suspendedAt })
       .from(users)
+      .innerJoin(restaurants, eq(restaurants.id, users.restaurantId))
       .where(and(eq(users.id, p.sub), eq(users.restaurantId, p.rid)));
-    if (!user) return null;
+    if (!row || row.suspendedAt) return null;
+    const user = row.user;
     return { id: user.id, restaurantId: user.restaurantId, role: user.role, name: user.name, email: user.email };
   }
 

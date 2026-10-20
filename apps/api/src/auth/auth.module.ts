@@ -16,6 +16,6 @@ import { UsersController } from './users.controller';
   ],
   controllers: [AuthController, UsersController],
   providers: [AuthService, { provide: APP_GUARD, useClass: AuthGuard }],
-  exports: [AuthService],
+  exports: [AuthService, JwtModule],
 })
 export class AuthModule {}

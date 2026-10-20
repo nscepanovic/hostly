@@ -89,6 +89,27 @@ When a restaurant joins a group, its guests move into the shared book. A guest w
 
 Guest emails go out from the platform's `MAIL_FROM` address but under the restaurant's name, with Reply-To set to the restaurant's email.
 
+## Admin panel (platform operators)
+
+`/admin` is the Hostly operator panel. It has its own accounts and login, completely separate from restaurant staff: a separate session cookie scoped to `/api/admin`, and its own token type. A staff session can't open it, and an admin session can't use the restaurant app.
+
+- **Overview:** restaurants (total, suspended, active in the last 7 days); reservations (24h, 7 days, 30 days) and covers; online share; no-show rate; online requests waiting; emails sent and failed; tablets connected right now; system health (database latency, uptime, memory, version); a 30-day chart of reservations created per day (with a table view).
+- **Restaurants:** search; usage per restaurant (reservations, staff, tables, guests, live devices, last activity). Create a restaurant with its owner. On each restaurant you can:
+  - suspend or reactivate it: staff are signed out at once, sessions stop working, and the booking page closes; guest cancel links keep working
+  - share its guests with another restaurant, or stop sharing
+  - add staff accounts and reset passwords
+  - see its recent activity and failed emails
+- **Activity:** staff actions across all restaurants (who, what, when).
+- **Emails:** delivery log with status and errors, filterable by restaurant and status.
+
+The panel shows counts and staff actions only. Guest personal data (names, phones, emails, notes, audit snapshots) never reaches it, and email recipients are masked (`j***@example.com`). Admin actions are recorded in the restaurant's activity log.
+
+Create the first admin on the server (the dev seed creates `admin@hostly.local` / `hostly123-admin`):
+
+```bash
+pnpm tenant admin-create --email you@hostly.rs --name "Your Name" --password '<min 10 chars>'
+```
+
 ## Personal data encryption
 
 Personal data is encrypted in the database with AES-256-GCM. The key lives in the server's environment, never in the database, so a database dump or backup alone does not reveal it.
@@ -129,8 +150,8 @@ pnpm test
 
 - `packages/shared`: phone normalization, duration rules (vitest)
 - `apps/api` unit: table suggestion rules, timezone/shift helpers, encryption and key rotation, blind-index search (jest)
-- `apps/api` e2e (against `hostly_test`, wiped on every run): no plaintext personal data at rest and search over encrypted fields, tenant isolation and guest-book sharing (merge, unshare), auth and roles, creating reservations with customer linking and VIP ranking, double-booking prevention including a 6-way concurrent race, status flow and audit log, and the public widget end to end (availability, booking, held table, emails in the guest's language, guest cancel, full slot, honeypot)
-- `apps/web`: floor-plan table state logic (vitest)
+- `apps/api` e2e (against `hostly_test`, wiped on every run): admin panel (session separation, metrics, create/suspend/share/reset, no guest data exposed), no plaintext personal data at rest and search over encrypted fields, tenant isolation and guest-book sharing (merge, unshare), auth and roles, creating reservations with customer linking and VIP ranking, double-booking prevention including a 6-way concurrent race, status flow and audit log, and the public widget end to end (availability, booking, held table, emails in the guest's language, guest cancel, full slot, honeypot)
+- `apps/web`: floor-plan table state logic, chart axis scaling (vitest)
 
 Set `TEST_DATABASE_URL` to use a different test database (default: the Docker one on port 5433). The URL must contain `test`.
 

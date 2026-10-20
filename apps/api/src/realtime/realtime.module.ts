@@ -3,5 +3,5 @@ import { RealtimeGateway } from './realtime.gateway';
 import { RealtimeService } from './realtime.service';
 
 @Global()
-@Module({ providers: [RealtimeGateway, RealtimeService], exports: [RealtimeService] })
+@Module({ providers: [RealtimeGateway, RealtimeService], exports: [RealtimeService, RealtimeGateway] })
 export class RealtimeModule {}

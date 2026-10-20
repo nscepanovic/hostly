@@ -44,9 +44,10 @@ export class RestaurantService {
     return toRestaurantDto(row, peers);
   }
 
+  /** Public lookup (booking page): suspended restaurants are not found. */
   async getBySlug(slug: string): Promise<RestaurantRow> {
     const [row] = await this.db.select().from(restaurants).where(eq(restaurants.slug, slug));
-    if (!row) throw new NotFoundException('Restaurant not found');
+    if (!row || row.suspendedAt) throw new NotFoundException('Restaurant not found');
     return row;
   }
 

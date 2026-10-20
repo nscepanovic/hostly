@@ -234,3 +234,81 @@ export interface AuditLogDto {
   after: unknown;
   at: string;
 }
+
+// ---------- platform admin ----------
+
+export interface AdminUserDto {
+  id: string;
+  email: string;
+  name: string;
+}
+
+export interface DailyPoint {
+  /** YYYY-MM-DD (UTC) */
+  date: string;
+  reservations: number;
+  online: number;
+  covers: number;
+}
+
+export interface AdminOverviewDto {
+  restaurants: { total: number; suspended: number; activeLast7d: number };
+  staffUsers: number;
+  guests: number;
+  reservations: { last24h: number; last7d: number; last30d: number; covers30d: number; onlineShare30d: number; noShowRate30d: number };
+  pendingOnline: number;
+  emails24h: { sent: number; failed: number };
+  connectedDevices: number;
+  system: { dbOk: boolean; dbLatencyMs: number; uptimeSec: number; memoryMb: number; node: string; version: string; startedAt: string };
+  perDay: DailyPoint[];
+}
+
+export interface AdminRestaurantRow {
+  id: string;
+  name: string;
+  slug: string;
+  createdAt: string;
+  suspendedAt: string | null;
+  onlineEnabled: boolean;
+  staff: number;
+  tables: number;
+  guests: number;
+  reservations30d: number;
+  covers30d: number;
+  lastActivityAt: string | null;
+  connectedDevices: number;
+  sharesGuestsWith: Array<{ id: string; name: string }>;
+}
+
+export interface AdminActivityDto {
+  id: string;
+  at: string;
+  restaurantId: string;
+  restaurantName: string;
+  userName: string | null;
+  entity: string;
+  action: string;
+}
+
+export interface AdminMessageDto {
+  id: string;
+  createdAt: string;
+  restaurantId: string;
+  restaurantName: string;
+  templateKey: string;
+  language: string;
+  status: string;
+  /** Masked (j***@example.com): the admin panel does not show guest personal data. */
+  recipient: string;
+  error: string | null;
+}
+
+export interface AdminRestaurantDetail extends AdminRestaurantRow {
+  timezone: string;
+  email: string | null;
+  phone: string | null;
+  users: Array<UserDto & { createdAt: string }>;
+  perDay: DailyPoint[];
+  activity: AdminActivityDto[];
+  failedMessages: AdminMessageDto[];
+}

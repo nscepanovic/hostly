@@ -210,3 +210,18 @@ export async function guestBookRestaurants(tx: DbOrTx, guestBookId: string) {
 }
 
 
+
+/** Creates a Hostly operator account (admin panel at /admin). */
+export async function createPlatformAdmin(tx: DbOrTx, input: { email: string; name: string; password: string }) {
+  if (input.password.length < 10) throw new Error('Admin password must be at least 10 characters');
+  const [admin] = await tx
+    .insert(s.platformAdmins)
+    .values({
+      email: input.email.toLowerCase(),
+      emailIndex: emailIndex(input.email)!,
+      name: input.name,
+      passwordHash: await bcrypt.hash(input.password, 12),
+    })
+    .returning();
+  return admin;
+}

@@ -88,6 +88,8 @@ export const restaurants = pgTable('restaurants', {
   email: text('email'),
   phone: text('phone'),
   address: text('address'),
+  /** Set by a platform admin: staff cannot sign in and the booking page is closed. */
+  suspendedAt: timestamp('suspended_at', { withTimezone: true }),
   createdAt: createdAt(),
 });
 
@@ -308,12 +310,28 @@ export const auditLog = pgTable(
   (t) => [index('audit_entity_idx').on(t.entityId)],
 );
 
+/** Hostly operators. Separate from restaurant staff: no restaurant, own login at /admin. */
+export const platformAdmins = pgTable(
+  'platform_admins',
+  {
+    id: id(),
+    email: encryptedText('email').notNull(),
+    emailIndex: text('email_bidx').notNull(),
+    name: encryptedText('name').notNull(),
+    passwordHash: text('password_hash').notNull(),
+    lastLoginAt: timestamp('last_login_at', { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex('platform_admins_email_bidx_uq').on(t.emailIndex)],
+);
+
 /** Small key/value store for operational state (e.g. which blind-index key built the indexes). */
 export const appMeta = pgTable('app_meta', {
   key: text('key').primaryKey(),
   value: text('value').notNull(),
 });
 
+export type PlatformAdminRow = typeof platformAdmins.$inferSelect;
 export type GuestBookRow = typeof guestBooks.$inferSelect;
 export type RestaurantRow = typeof restaurants.$inferSelect;
 export type UserRow = typeof users.$inferSelect;

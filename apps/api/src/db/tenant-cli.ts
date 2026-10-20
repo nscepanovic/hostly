@@ -5,7 +5,7 @@ import { env } from '../config/env';
 import { isUniqueViolation } from '../common/pg-errors';
 import { createDb, type Db } from './client';
 import * as s from './schema';
-import { createRestaurant, shareGuests, unshareGuests } from './tenant';
+import { createPlatformAdmin, createRestaurant, shareGuests, unshareGuests } from './tenant';
 
 const usage = `Hostly tenant administration
 
@@ -17,6 +17,8 @@ const usage = `Hostly tenant administration
   pnpm tenant unshare-guests --slug <slug>
       The restaurant gets a private guest database again (with a copy of its own guests).
   pnpm tenant list
+  pnpm tenant admin-create --email you@hostly.rs --name "Your Name" --password '<min 10 chars>'
+      Platform admin account for the admin panel at /admin.
 `;
 
 async function bySlug(db: Db, slug: string) {
@@ -39,6 +41,7 @@ async function main() {
       timezone: { type: 'string' },
       language: { type: 'string' },
       'share-guests-with': { type: 'string' },
+      email: { type: 'string' },
     },
   });
 
@@ -78,6 +81,12 @@ async function main() {
         console.log(`"${a.name}" has a private guest database again (${res.copied} guests copied).`);
         break;
       }
+      case 'admin-create': {
+        if (!v.email || !v.password) throw new Error(usage);
+        const admin = await db.transaction((tx) => createPlatformAdmin(tx, { email: v.email!, name: v.name ?? v.email!, password: v.password! }));
+        console.log(`Created platform admin ${admin.email}. Sign in at ${env().APP_URL.replace(/\/$/, '')}/admin`);
+        break;
+      }
       case 'list': {
         const rows = await db.select().from(s.restaurants).orderBy(asc(s.restaurants.guestBookId), asc(s.restaurants.name));
         const groups = new Map<string, string[]>();
@@ -90,7 +99,7 @@ async function main() {
         process.exitCode = command ? 1 : 0;
     }
   } catch (err) {
-    console.error(isUniqueViolation(err) ? 'That slug or owner email is already taken.' : (err as Error).message);
+    console.error(isUniqueViolation(err) ? 'That slug or email is already taken.' : (err as Error).message);
     process.exitCode = 1;
   } finally {
     await pool.end();

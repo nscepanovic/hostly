@@ -18,6 +18,20 @@ export class RealtimeGateway implements OnGatewayConnection {
 
   constructor(private readonly auth: AuthService) {}
 
+  /** Open tablet/browser connections per restaurant id (admin monitoring). */
+  connectedByRestaurant(): Map<string, number> {
+    const out = new Map<string, number>();
+    for (const [room, sockets] of this.server?.sockets.adapter.rooms ?? []) {
+      if (room.startsWith('restaurant:')) out.set(room.slice('restaurant:'.length), sockets.size);
+    }
+    return out;
+  }
+
+  /** Drops every live connection of a restaurant (used on suspension). */
+  disconnectRestaurant(restaurantId: string) {
+    this.server?.in(restaurantRoom(restaurantId)).disconnectSockets(true);
+  }
+
   /** Authenticates with the session cookie and joins the restaurant's room. */
   async handleConnection(socket: Socket) {
     const cookies = parseCookie(socket.handshake.headers.cookie ?? '');

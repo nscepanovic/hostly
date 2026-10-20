@@ -14,7 +14,7 @@ import {
 import { env } from '../config/env';
 import { createDb, type Db } from './client';
 import * as s from './schema';
-import { createRestaurant } from './tenant';
+import { createPlatformAdmin, createRestaurant } from './tenant';
 import { emailIndex } from '../common/crypto';
 import { customerIndexes } from '../customers/customer-indexes';
 
@@ -253,6 +253,7 @@ export async function seed(db: Db, opts: { slug?: string; name?: string; passwor
         language: cust.language ?? 'sr',
         guestToken: guestToken(),
         spend,
+        createdAt: arrival.minus({ days: 2 }).toJSDate(),
         seatedAt: status === 'completed' ? arrival.toJSDate() : null,
         completedAt: status === 'completed' ? arrival.plus({ hours: 2 }).toJSDate() : null,
       });
@@ -263,7 +264,12 @@ export async function seed(db: Db, opts: { slug?: string; name?: string; passwor
       { restaurantId: rid, guestName: 'Familija Ristić', covers: 4, notes: 'Two kids' },
     ]);
 
-    return { restaurant, users: userRows, password };
+    // Dev/test platform admin for /admin (production admins are created with `pnpm tenant admin-create`).
+    const adminEmail = 'admin@hostly.local';
+    const [existingAdmin] = await tx.select().from(s.platformAdmins).where(eq(s.platformAdmins.emailIndex, emailIndex(adminEmail)!));
+    if (!existingAdmin) await createPlatformAdmin(tx, { email: adminEmail, name: 'Hostly Admin', password: `${password}-admin` });
+
+    return { restaurant, users: userRows, password, adminEmail, adminPassword: `${password}-admin` };
   });
 }
 
@@ -281,6 +287,7 @@ async function main() {
     const result = await seed(db);
     console.log(`Seeded restaurant "${result.restaurant.name}" (/book/${result.restaurant.slug})`);
     for (const u of result.users) console.log(`  ${u.role.padEnd(5)} ${u.email}  password: ${result.password}`);
+    console.log(`  admin ${result.adminEmail}  password: ${result.adminPassword}  (admin panel: /admin)`);
   } finally {
     await pool.end();
   }
