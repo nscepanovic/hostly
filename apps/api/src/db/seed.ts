@@ -51,6 +51,27 @@ const TABLES: Array<[label: string, shape: 'rect' | 'round', x: number, y: numbe
   ['br 12', 'rect', 790, 450, 110, 100, 4, 6, 8],
 ];
 
+type TableSpec = (typeof TABLES)[number];
+
+/** A garden and a second hall: a restaurant can have any number of halls and gardens (areas). */
+const GARDEN: TableSpec[] = [
+  ['b1', 'round', 60, 60, 90, 90, 2, 4, 7],
+  ['b2', 'round', 240, 60, 90, 90, 2, 4, 8],
+  ['b3', 'round', 420, 60, 90, 90, 2, 4, 8],
+  ['b4', 'round', 600, 60, 90, 90, 2, 4, 6],
+  ['b5', 'rect', 120, 300, 180, 90, 6, 8, 7],
+  ['b6', 'rect', 380, 300, 180, 90, 6, 8, 7],
+  ['b7', 'rect', 640, 280, 80, 80, 1, 2, 5],
+  ['b8', 'rect', 640, 460, 80, 80, 1, 2, 4],
+];
+
+const GALLERY: TableSpec[] = [
+  ['g1', 'rect', 60, 60, 260, 100, 8, 10, 9],
+  ['g2', 'rect', 420, 60, 200, 100, 6, 8, 8],
+  ['g3', 'round', 120, 300, 120, 120, 4, 6, 7],
+  ['g4', 'round', 420, 300, 120, 120, 4, 6, 6],
+];
+
 const CUSTOMERS: Array<[first: string, last: string | null, phone: string, type: CustomerType, extra?: Partial<typeof s.customers.$inferInsert>]> = [
   ['Slađana', 'Petrović', '064 996 4772', 'regular'],
   ['Omar', 'Hadžić', '+387 61 664 847', 'regular', { language: 'en' }],
@@ -109,23 +130,37 @@ export async function seed(db: Db, opts: { slug?: string; name?: string; passwor
       .returning();
     const userRows = [owner, ...hosts];
 
+    const [garden, gallery] = await tx
+      .insert(s.areas)
+      .values([
+        { restaurantId: rid, name: 'Bašta', sort: 1 },
+        { restaurantId: rid, name: 'Galerija', sort: 2 },
+      ])
+      .returning();
+    const layout: Array<[areaId: string, specs: TableSpec[]]> = [
+      [area.id, TABLES],
+      [garden.id, GARDEN],
+      [gallery.id, GALLERY],
+    ];
     const tableRows = await tx
       .insert(s.tables)
       .values(
-        TABLES.map(([label, shape, x, y, w, h, minSeats, maxSeats, rating]) => ({
-          restaurantId: rid,
-          areaId: area.id,
-          label,
-          shape,
-          x,
-          y,
-          w,
-          h,
-          rotation: 0,
-          minSeats,
-          maxSeats,
-          rating,
-        })),
+        layout.flatMap(([areaId, specs]) =>
+          specs.map(([label, shape, x, y, w, h, minSeats, maxSeats, rating]) => ({
+            restaurantId: rid,
+            areaId,
+            label,
+            shape,
+            x,
+            y,
+            w,
+            h,
+            rotation: 0,
+            minSeats,
+            maxSeats,
+            rating,
+          })),
+        ),
       )
       .returning();
     const t = Object.fromEntries(tableRows.map((r) => [r.label, r]));
@@ -134,6 +169,8 @@ export async function seed(db: Db, opts: { slug?: string; name?: string; passwor
       { restaurantId: rid, name: 'br 2 + br 3', tableIds: [t['br 2'].id, t['br 3'].id] },
       { restaurantId: rid, name: 'br 5 + br 12', tableIds: [t['br 5'].id, t['br 12'].id] },
       { restaurantId: rid, name: 'br 8 + br 10', tableIds: [t['br 8'].id, t['br 10'].id] },
+      { restaurantId: rid, name: 'b5 + b6', tableIds: [t['b5'].id, t['b6'].id] },
+      { restaurantId: rid, name: 'g1 + g2', tableIds: [t['g1'].id, t['g2'].id] },
     ]);
 
     const customerRows = await tx
@@ -164,7 +201,7 @@ export async function seed(db: Db, opts: { slug?: string; name?: string; passwor
     const statusFor = (arrival: DateTime, departure: DateTime): ReservationStatus =>
       departure < now ? 'completed' : arrival <= now ? 'seated' : 'confirmed';
 
-    type Sample = { estimated?: boolean; cust?: string; name?: [string, string]; time: string; mins: number; covers: number; tables: string[]; source: ReservationSource; status?: ReservationStatus; notes?: string; tags?: string[]; dietary?: string[] };
+    type Sample = { purpose?: 'food' | 'drink' | 'food_drink'; estimated?: boolean; cust?: string; name?: [string, string]; time: string; mins: number; covers: number; tables: string[]; source: ReservationSource; status?: ReservationStatus; notes?: string; tags?: string[]; dietary?: string[] };
     const samples: Sample[] = [
       { cust: 'Sanja', time: '09:30', mins: 90, covers: 2, tables: ['br 4'], source: 'phone', tags: ['window seat'] },
       { cust: 'Jelena', time: '12:00', mins: 120, covers: 5, tables: ['br 5'], source: 'phone', notes: 'Company lunch', tags: ['business'] },
@@ -182,6 +219,13 @@ export async function seed(db: Db, opts: { slug?: string; name?: string; passwor
       { cust: 'Marko', time: '20:15', mins: 120, covers: 2, tables: ['br 1'], source: 'phone' },
       { cust: 'Vladimir', time: '22:30', mins: 90, covers: 2, tables: ['br 1'], source: 'staff', estimated: true },
       { cust: 'Kalo', time: '21:45', mins: 150, covers: 6, tables: ['br 8'], source: 'phone', estimated: true },
+      // Garden (Bašta) and second hall (Galerija).
+      { cust: 'Omar', time: '17:30', mins: 120, covers: 3, tables: ['b4'], source: 'phone', estimated: true },
+      { cust: 'Slađana', time: '19:30', mins: 120, covers: 4, tables: ['b2'], source: 'online', estimated: true },
+      { cust: 'Mihail', time: '21:00', mins: 90, covers: 2, tables: ['b1'], source: 'phone', purpose: 'drink', estimated: true },
+      { name: ['Rođendan', 'Petrović'], time: '20:00', mins: 180, covers: 14, tables: ['b5', 'b6'], source: 'phone', notes: 'Birthday party in the garden', tags: ['birthday'] },
+      { cust: 'Kancelarija', time: '20:00', mins: 180, covers: 10, tables: ['g1'], source: 'staff', notes: 'Team dinner', tags: ['business'], purpose: 'food_drink' },
+      { cust: 'Nataša', time: '13:00', mins: 120, covers: 6, tables: ['g2'], source: 'phone' },
     ];
 
     for (const sm of samples) {
@@ -202,14 +246,14 @@ export async function seed(db: Db, opts: { slug?: string; name?: string; passwor
           arrivalAt: arrival.toJSDate(),
           departureAt: departure.toJSDate(),
           departureEstimated: sm.estimated ?? false,
-          purpose: 'food',
+          purpose: sm.purpose ?? 'food',
           status,
           source: sm.source,
           notes: sm.notes ?? null,
           tags: sm.tags ?? [],
           dietary: sm.dietary ?? [],
           language: cust?.language ?? 'sr',
-          areaId: area.id,
+          areaId: sm.tables.length ? t[sm.tables[0]].areaId : area.id,
           guestToken: guestToken(),
           seatedAt: status === 'seated' || status === 'completed' ? arrival.toJSDate() : null,
           completedAt: status === 'completed' ? departure.toJSDate() : null,

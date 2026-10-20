@@ -51,7 +51,7 @@ describe('platform admin (e2e)', () => {
 
   it('lists restaurants with usage and shows details', async () => {
     const list: AdminRestaurantRow[] = (await admin.get('/api/admin/restaurants').expect(200)).body;
-    expect(list[0]).toMatchObject({ slug: 'test', staff: 3, tables: 12, guests: 20, suspendedAt: null });
+    expect(list[0]).toMatchObject({ slug: 'test', staff: 3, tables: 24, guests: 20, suspendedAt: null }); // 12 inside, 8 in the garden, 4 in the gallery
     const d: AdminRestaurantDetail = (await admin.get(`/api/admin/restaurants/${restaurantId}`).expect(200)).body;
     expect(d.users.map((u) => u.email).sort()).toEqual(['host1@test.local', 'host2@test.local', 'owner@test.local']);
     expect(Array.isArray(d.activity)).toBe(true);
