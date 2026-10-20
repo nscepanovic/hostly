@@ -8,6 +8,9 @@
   "scripts": {
     "build": "pnpm --filter @hostly/shared build && pnpm --filter @hostly/api build && pnpm --filter @hostly/web build",
     "dev": "pnpm --filter @hostly/shared build && pnpm --parallel --filter @hostly/api --filter @hostly/web --filter @hostly/shared dev",
+    "db:up": "docker compose up -d --wait db",
+    "db:down": "docker compose down",
+    "db:reset": "docker compose down -v && docker compose up -d --wait db && pnpm db:migrate && pnpm db:seed",
     "db:generate": "pnpm --filter @hostly/api db:generate",
     "db:migrate": "pnpm --filter @hostly/api db:migrate",
     "db:seed": "pnpm --filter @hostly/api db:seed",
