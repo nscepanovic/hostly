@@ -17,6 +17,8 @@ const usage = `Hostly tenant administration
   pnpm tenant unshare-guests --slug <slug>
       The restaurant gets a private guest database again (with a copy of its own guests).
   pnpm tenant list
+  pnpm tenant users
+      All staff and admin accounts, decrypted (names and emails are encrypted in the database).
   pnpm tenant admin-create --email you@hostly.rs --name "Your Name" --password '<min 10 chars>'
       Platform admin account for the admin panel at /admin.
 `;
@@ -85,6 +87,19 @@ async function main() {
         if (!v.email || !v.password) throw new Error(usage);
         const admin = await db.transaction((tx) => createPlatformAdmin(tx, { email: v.email!, name: v.name ?? v.email!, password: v.password! }));
         console.log(`Created platform admin ${admin.email}. Sign in at ${env().APP_URL.replace(/\/$/, '')}/admin`);
+        break;
+      }
+      case 'users': {
+        const rows = await db
+          .select({ restaurant: s.restaurants.name, slug: s.restaurants.slug, email: s.users.email, name: s.users.name, role: s.users.role })
+          .from(s.users)
+          .innerJoin(s.restaurants, eq(s.restaurants.id, s.users.restaurantId));
+        rows.sort((a, b) => a.restaurant.localeCompare(b.restaurant) || a.role.localeCompare(b.role) || a.email.localeCompare(b.email));
+        for (const u of rows) console.log(`${u.restaurant} (${u.slug})  ${u.role.padEnd(5)}  ${u.email}  ${u.name}`);
+        const admins = await db.select().from(s.platformAdmins);
+        for (const a of admins) console.log(`[platform admin]  ${a.email}  ${a.name}`);
+        if (!rows.length && !admins.length) console.log('No accounts. Run: pnpm db:seed');
+        console.log(`\nDatabase: ${env().DATABASE_URL.replace(/:[^:@/]+@/, ':***@')}`);
         break;
       }
       case 'list': {

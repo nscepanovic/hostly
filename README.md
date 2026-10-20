@@ -81,6 +81,7 @@ pnpm tenant create --name "Kafana Zlatni Ključ" --slug zlatni-kljuc \
 pnpm tenant share-guests --slug zlatni-kljuc --with restoran   # start sharing; same-phone guests are merged
 pnpm tenant unshare-guests --slug zlatni-kljuc                 # back to private, with a copy of its own guests
 pnpm tenant list                                               # which restaurants share guests
+pnpm tenant users                                              # all staff and admin accounts, decrypted
 ```
 
 On the server, run these with `NODE_ENV=production` and the production `DATABASE_URL` in `.env`.
