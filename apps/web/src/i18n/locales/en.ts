@@ -85,7 +85,7 @@ const en = {
     upcoming: 'Booked',
     zoomIn: 'Zoom in',
     zoomOut: 'Zoom out',
-    fit: 'Fit to screen',
+    fit: 'Center',
     free: 'Free',
     late: 'Late',
     noReservations: 'No reservations',

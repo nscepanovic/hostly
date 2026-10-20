@@ -1,6 +1,7 @@
 import { useMemo, type ReactNode } from 'react';
+import { usePanZoom } from './usePanZoom';
 import { useTranslation } from 'react-i18next';
-import { Maximize, ZoomIn, ZoomOut } from 'lucide-react';
+import { LocateFixed, ZoomIn, ZoomOut } from 'lucide-react';
 import type { ReservationDto, TableDto } from '@hostly/shared';
 import { guestName } from '@/lib/day';
 import { fmtTime } from '@/lib/time';
@@ -14,8 +15,7 @@ export function FloorCanvas({
   statuses,
   reservations,
   timezone,
-  zoom,
-  onZoom,
+  resetKey,
   onTableTap,
   highlightIds,
   dimIds,
@@ -26,8 +26,8 @@ export function FloorCanvas({
   statuses: Map<string, TableStatus>;
   reservations: ReservationDto[];
   timezone: string;
-  zoom: number;
-  onZoom: (z: number) => void;
+  /** The view re-centres when this changes (e.g. the area shown). */
+  resetKey: string;
   onTableTap: (table: TableDto) => void;
   highlightIds?: Set<string>;
   dimIds?: Set<string>;
@@ -66,10 +66,8 @@ export function FloorCanvas({
     return lines;
   }, [reservations, byId]);
 
-  const fitted = zoom === 1;
-  const svgStyle = fitted
-    ? { width: '100%', height: '100%' }
-    : { width: Math.max(size.width, 1) * zoom, height: Math.max(size.height, 1) * zoom };
+  const view = usePanZoom(containerRef, size, bounds, resetKey);
+  const vb = view.viewBox;
 
   return (
     <div className="flex h-full w-full flex-col">
@@ -77,38 +75,30 @@ export function FloorCanvas({
         <div className="min-w-0 flex-1">{header}</div>
         <div className="flex items-center gap-0.5 rounded-xl border border-border bg-surface p-0.5">
           {toolbar}
-          <IconButton label={t('floor.zoomOut')} onClick={() => onZoom(Math.max(1, zoom / 1.3))} disabled={zoom <= 1}>
+          <IconButton label={t('floor.zoomOut')} onClick={view.zoomOut}>
             <ZoomOut size={20} />
           </IconButton>
-          <IconButton label={t('floor.zoomIn')} onClick={() => onZoom(Math.min(3, zoom * 1.3))}>
+          <span className="w-12 text-center text-xs text-muted tabular-nums" aria-live="polite">
+            {Math.round(view.zoom * 100)}%
+          </span>
+          <IconButton label={t('floor.zoomIn')} onClick={view.zoomIn}>
             <ZoomIn size={20} />
           </IconButton>
-          <IconButton label={t('floor.fit')} onClick={() => onZoom(1)}>
-            <Maximize size={20} />
+          <IconButton label={t('floor.fit')} onClick={view.reset}>
+            <LocateFixed size={20} />
           </IconButton>
         </div>
       </div>
-      <div
-        ref={containerRef}
-        className="min-h-0 w-full flex-1 overflow-auto"
-        onWheel={(e) => {
-          if (!e.ctrlKey) return;
-          e.preventDefault();
-          onZoom(Math.min(3, Math.max(1, zoom * (e.deltaY < 0 ? 1.15 : 1 / 1.15))));
-        }}
-      >
-        <svg
-          viewBox={`${bounds.x} ${bounds.y} ${bounds.w} ${bounds.h}`}
-          preserveAspectRatio="xMidYMid meet"
-          style={svgStyle}
-          className="block touch-manipulation select-none"
-        >
+      {/* Drag to pan, pinch or wheel to zoom (see usePanZoom). */}
+      <div ref={containerRef} className="min-h-0 w-full flex-1 cursor-grab touch-none overflow-hidden active:cursor-grabbing">
+        <svg viewBox={`${vb.x} ${vb.y} ${vb.w} ${vb.h}`} preserveAspectRatio="xMidYMid meet" className="block h-full w-full select-none">
           <defs>
             <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
               <circle cx="1" cy="1" r="1" fill="var(--color-border)" />
             </pattern>
           </defs>
-          <rect x={bounds.x} y={bounds.y} width={bounds.w} height={bounds.h} fill="url(#grid)" />
+          {/* The dotted floor fills whatever is visible, however far out you zoom. */}
+          <rect x={vb.x} y={vb.y} width={vb.w} height={vb.h} fill="url(#grid)" />
           {joins.map((l) => (
             <line
               key={l.key}

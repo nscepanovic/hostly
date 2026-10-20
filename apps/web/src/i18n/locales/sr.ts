@@ -87,7 +87,7 @@ const sr: Translation = {
     upcoming: 'Rezervisano',
     zoomIn: 'Uvećaj',
     zoomOut: 'Umanji',
-    fit: 'Prilagodi ekranu',
+    fit: 'Centriraj',
     free: 'Slobodan',
     late: 'Kasni',
     noReservations: 'Nema rezervacija',

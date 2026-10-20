@@ -36,7 +36,6 @@ export function FloorPage() {
   const { move } = useReservationActions();
   const overTableId = useDrag((s) => s.overTableId);
   const now = useNow();
-  const [zoom, setZoom] = useState(1);
   const [tapped, setTapped] = useState<TableDto | null>(null);
   const [assigning, setAssigning] = useState<ReservationDto | null>(null);
 
@@ -86,8 +85,7 @@ export function FloorPage() {
         statuses={statuses}
         reservations={all}
         timezone={restaurant.timezone}
-        zoom={zoom}
-        onZoom={setZoom}
+        resetKey={area?.id ?? ''}
         onTableTap={onTableTap}
         highlightIds={highlight}
         header={
