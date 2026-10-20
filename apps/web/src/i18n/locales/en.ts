@@ -164,6 +164,7 @@ const en = {
     endDate: 'End date',
     endTime: 'End time',
     endBeforeStart: 'End must be after the start',
+    tableTaken: 'Already booked on this table (crossed-out times):',
     selectTime: 'Select time',
     duration: 'Duration',
     created: 'Reservation saved',

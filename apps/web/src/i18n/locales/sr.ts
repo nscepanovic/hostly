@@ -166,6 +166,7 @@ const sr: Translation = {
     endDate: 'Datum kraja',
     endTime: 'Vreme kraja',
     endBeforeStart: 'Kraj mora biti posle početka',
+    tableTaken: 'Sto je već rezervisan (precrtana vremena):',
     selectTime: 'Izaberi vreme',
     duration: 'Trajanje',
     created: 'Rezervacija sačuvana',

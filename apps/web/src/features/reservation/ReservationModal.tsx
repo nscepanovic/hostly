@@ -22,7 +22,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Button, IconButton } from '@/components/ui/Button';
 import { toast } from '@/components/ui/Toast';
 import { api, ApiError, errorMessage } from '@/lib/api';
-import { qk, useAreas, useRestaurant, useTables, useViewDate } from '@/lib/queries';
+import { qk, useAreas, useReservations, useRestaurant, useTables, useViewDate } from '@/lib/queries';
 import { businessLocal, inZone } from '@/lib/time';
 import { useUi, type ReservationDraft } from '@/store/ui';
 import { CustomerBadge } from './ReservationCard';
@@ -212,6 +212,8 @@ function ReservationForm({ id, draft, onClose }: { id?: string; draft: Reservati
   }, [form, restaurant, arrivalLocal, estimateMin]);
   const endBeforeStart = !!arrivalLocal && !!departureLocal && departureLocal <= arrivalLocal;
 
+  const dayReservations = useReservations(form?.date ?? null);
+
   // Auto table suggestion once covers and time are known.
   const suggestions = useQuery({
     queryKey: ['suggest', arrivalLocal, departureLocal, form?.covers, form?.customerId, form?.areaId, id],
@@ -291,8 +293,16 @@ function ReservationForm({ id, draft, onClose }: { id?: string; draft: Reservati
     );
   }
 
-  const canSave = !!form.time && !!form.covers && !endBeforeStart && !save.isPending;
   const labelOf = new Map(tables.map((tb) => [tb.id, tb.label]));
+  // Existing bookings of the chosen tables that day, so the time picker can grey them out.
+  const busy = (dayReservations.data ?? [])
+    .filter((r) => r.id !== id && ['pending', 'confirmed', 'seated'].includes(r.status) && r.tableIds.some((tid) => form.tableIds.includes(tid)))
+    .map((r) => ({
+      from: r.arrivalAt,
+      to: r.departureAt,
+      label: `${r.tableIds.map((tid) => labelOf.get(tid)).join('+')}: ${[r.lastName, r.firstName].filter(Boolean).join(' ') || '—'} ${inZone(r.arrivalAt, restaurant.timezone).toFormat('HH:mm')}–${inZone(r.departureAt, restaurant.timezone).toFormat('HH:mm')}`,
+    }));
+  const canSave = !!form.time && !!form.covers && !endBeforeStart && !save.isPending;
   const chosenSeats = tables.filter((tb) => form.tableIds.includes(tb.id)).reduce((n, tb) => n + tb.maxSeats, 0);
   const hasHardIssue = issues.some((i) => i.hard);
 
@@ -401,6 +411,7 @@ function ReservationForm({ id, draft, onClose }: { id?: string; draft: Reservati
           restaurant={restaurant}
           date={form.date}
           value={form.time}
+          busy={busy}
           onPick={(time) => {
             set('time', time);
             setTimeOpen(false);

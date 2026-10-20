@@ -134,34 +134,33 @@ export function TablePopover({
           </>
         )}
         {(!r || r.status === 'completed') && (
-          <>
-            <Action
-              tone="ok"
-              icon={<Footprints size={22} />}
-              label={t('topbar.walkIn')}
-              onClick={() => {
-                newReservation({
-                  tableIds: [table.id],
-                  status: 'seated',
-                  source: 'walk_in',
-                  covers: table.minSeats,
-                  arrivalTime: DateTime.now().setZone(timezone).toFormat('HH:mm'),
-                  // Walk-ins on a table booked later must leave before that booking.
-                  endAt: walkInEnd(status, timezone),
-                });
-                onClose();
-              }}
-            />
-            <Action
-              icon={<Plus size={22} />}
-              label={t('topbar.newReservation')}
-              onClick={() => {
-                newReservation({ tableIds: [table.id], covers: table.minSeats });
-                onClose();
-              }}
-            />
-          </>
+          <Action
+            tone="ok"
+            icon={<Footprints size={22} />}
+            label={t('topbar.walkIn')}
+            onClick={() => {
+              newReservation({
+                tableIds: [table.id],
+                status: 'seated',
+                source: 'walk_in',
+                covers: table.minSeats,
+                arrivalTime: DateTime.now().setZone(timezone).toFormat('HH:mm'),
+                // Walk-ins on a table booked later must leave before that booking.
+                endAt: walkInEnd(status, timezone),
+              });
+              onClose();
+            }}
+          />
         )}
+        {/* A table takes many bookings a day: a new one is always possible (busy times are greyed in the time picker). */}
+        <Action
+          icon={<Plus size={22} />}
+          label={t('topbar.newReservation')}
+          onClick={() => {
+            newReservation({ tableIds: [table.id], covers: table.minSeats });
+            onClose();
+          }}
+        />
       </div>
 
       {status && status.upcoming.length > 0 && (
