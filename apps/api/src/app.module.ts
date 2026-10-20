@@ -10,6 +10,10 @@ import { DbModule } from './db/db.module';
 import { HealthController } from './health.controller';
 import { RealtimeModule } from './realtime/realtime.module';
 import { RestaurantModule } from './restaurant/restaurant.module';
+import { FloorPlanModule } from './floorplan/floorplan.module';
+import { TagsModule } from './tags/tags.module';
+import { MessagingModule } from './messaging/messaging.module';
+import { ReservationsModule } from './reservations/reservations.module';
 
 const staticModules = (): DynamicModule[] =>
   webDistPath()
@@ -26,6 +30,10 @@ const staticModules = (): DynamicModule[] =>
     AuthModule,
     RealtimeModule,
     RestaurantModule,
+    FloorPlanModule,
+    TagsModule,
+    MessagingModule,
+    ReservationsModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
