@@ -16,6 +16,7 @@
     "db:seed": "pnpm --filter @hostly/api db:seed",
     "test": "pnpm --filter @hostly/shared build && pnpm -r test",
     "typecheck": "pnpm --filter @hostly/shared build && pnpm -r typecheck",
-    "start": "node apps/api/dist/main.js"
+    "start": "node apps/api/dist/main.js",
+    "tenant": "pnpm --filter @hostly/api tenant"
   }
 }

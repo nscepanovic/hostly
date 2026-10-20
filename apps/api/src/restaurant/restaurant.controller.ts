@@ -9,7 +9,7 @@ import {
 import { CurrentUser, Roles, type AuthUser } from '../common/decorators';
 import { ZodPipe } from '../common/zod.pipe';
 import { RealtimeService } from '../realtime/realtime.service';
-import { RestaurantService, toRestaurantDto } from './restaurant.service';
+import { RestaurantService } from './restaurant.service';
 
 @Controller('restaurant')
 export class RestaurantController {
@@ -20,7 +20,7 @@ export class RestaurantController {
 
   @Get()
   async get(@CurrentUser() user: AuthUser): Promise<RestaurantDto> {
-    return toRestaurantDto(await this.restaurants.get(user.restaurantId));
+    return this.restaurants.getDto(user.restaurantId);
   }
 
   @Put()
@@ -29,9 +29,9 @@ export class RestaurantController {
     @CurrentUser() user: AuthUser,
     @Body(new ZodPipe(restaurantSettingsSchema)) body: RestaurantSettingsInput,
   ): Promise<RestaurantDto> {
-    const row = await this.restaurants.updateSettings(user.restaurantId, body);
+    await this.restaurants.updateSettings(user.restaurantId, body);
     this.realtime.emit(user.restaurantId, 'settings.updated', {});
-    return toRestaurantDto(row);
+    return this.restaurants.getDto(user.restaurantId);
   }
 
   @Put('online')
@@ -40,8 +40,8 @@ export class RestaurantController {
     @CurrentUser() user: AuthUser,
     @Body(new ZodPipe(onlineSettingsSchema)) body: OnlineSettings,
   ): Promise<RestaurantDto> {
-    const row = await this.restaurants.updateOnline(user.restaurantId, body);
+    await this.restaurants.updateOnline(user.restaurantId, body);
     this.realtime.emit(user.restaurantId, 'settings.updated', {});
-    return toRestaurantDto(row);
+    return this.restaurants.getDto(user.restaurantId);
   }
 }

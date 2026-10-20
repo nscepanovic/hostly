@@ -1,7 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import bcrypt from 'bcryptjs';
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import type { Role, UserDto } from '@hostly/shared';
 import { InjectDb, type Db } from '../db/db.module';
 import { users, type UserRow } from '../db/schema';
@@ -46,13 +46,23 @@ export class AuthService {
     return this.jwt.signAsync(payload);
   }
 
+  /**
+   * Verifies the token and re-reads the user, so a deleted user or a changed
+   * role takes effect immediately instead of when the token expires.
+   */
   async verify(token: string): Promise<AuthUser | null> {
+    let p: JwtPayload;
     try {
-      const p = await this.jwt.verifyAsync<JwtPayload>(token);
-      return { id: p.sub, restaurantId: p.rid, role: p.role, name: p.name, email: p.email };
+      p = await this.jwt.verifyAsync<JwtPayload>(token);
     } catch {
       return null;
     }
+    const [user] = await this.db
+      .select()
+      .from(users)
+      .where(and(eq(users.id, p.sub), eq(users.restaurantId, p.rid)));
+    if (!user) return null;
+    return { id: user.id, restaurantId: user.restaurantId, role: user.role, name: user.name, email: user.email };
   }
 
   static hash(password: string) {

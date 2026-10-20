@@ -5,6 +5,10 @@ export interface OutgoingMessage {
   subject: string;
   text: string;
   html: string;
+  /** Display name for the sender, e.g. the restaurant (the address stays the platform's). */
+  fromName?: string;
+  /** Where guest replies go, e.g. the restaurant's own email. */
+  replyTo?: string | null;
 }
 
 /**

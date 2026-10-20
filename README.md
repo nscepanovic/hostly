@@ -66,6 +66,29 @@ Public booking page: http://localhost:5173/book/restoran
 
 Without `SMTP_HOST`, guest emails are not sent. They are printed to the API log instead, links included.
 
+## Restaurants (SaaS tenants) and shared guests
+
+Many restaurants run on one Hostly installation. Each one has its own staff accounts, floor plan, reservations, settings and booking page (`/book/<slug>`). The API scopes every request to the signed-in user's restaurant, and the e2e suite checks that one restaurant cannot read, change or link another's data.
+
+**Guests live in a guest book.** By default every restaurant has its own private book, so the same phone number at two unrelated restaurants is two separate guests who can't see each other. Restaurants that should share guests (for example, several locations of one owner) point to the same book. They then see one guest record: VIP or blacklist flags, notes, tags, and visit history across all of them, with the restaurant shown for each visit.
+
+Sharing is a platform operation, done at the request of both restaurants:
+
+```bash
+pnpm tenant create --name "Kafana Zlatni Ključ" --slug zlatni-kljuc \
+  --owner-email vlasnik@example.com --owner-name "Marko Marković" --password '<min 8 chars>' \
+  [--share-guests-with <slug>]                       # new restaurant, optionally joining a group's guests
+pnpm tenant share-guests --slug zlatni-kljuc --with restoran   # start sharing; same-phone guests are merged
+pnpm tenant unshare-guests --slug zlatni-kljuc                 # back to private, with a copy of its own guests
+pnpm tenant list                                               # which restaurants share guests
+```
+
+On the server, run these with `NODE_ENV=production` and the production `DATABASE_URL` in `.env`.
+
+When a restaurant joins a group, its guests move into the shared book. A guest who already exists there with the same phone is merged: reservations are re-linked, blank fields are filled in, tags and notes are combined, and the stricter type wins (blacklisted > SVIP > VIP > regular). Settings shows owners who they share guests with.
+
+Guest emails go out from the platform's `MAIL_FROM` address but under the restaurant's name, with Reply-To set to the restaurant's email.
+
 ## Tests
 
 ```bash
@@ -74,10 +97,10 @@ pnpm test
 
 - `packages/shared`: phone normalization, duration rules (vitest)
 - `apps/api` unit: table suggestion rules, timezone/shift helpers (jest)
-- `apps/api` e2e (against `hostly_test`, wiped on every run): auth and roles, creating reservations with customer linking and VIP ranking, double-booking prevention including a 6-way concurrent race, status flow and audit log, and the public widget end to end (availability, booking, held table, emails in the guest's language, guest cancel, full slot, honeypot)
+- `apps/api` e2e (against `hostly_test`, wiped on every run): tenant isolation and guest-book sharing (merge, unshare), auth and roles, creating reservations with customer linking and VIP ranking, double-booking prevention including a 6-way concurrent race, status flow and audit log, and the public widget end to end (availability, booking, held table, emails in the guest's language, guest cancel, full slot, honeypot)
 - `apps/web`: floor-plan table state logic (vitest)
 
-Set `TEST_DATABASE_URL` to use a different test database. The URL must contain `test`.
+Set `TEST_DATABASE_URL` to use a different test database (default: the Docker one on port 5433). The URL must contain `test`.
 
 ## Environment variables
 
@@ -138,7 +161,7 @@ Run exactly one API instance. Socket.IO rooms are in memory, so scaling out woul
 
 ## Design notes
 
-- **Multi-tenant ready.** Every row carries `restaurant_id`, and every query is scoped to the signed-in user's restaurant. Tenant signup and billing are not built.
+- **Multi-tenant.** Every row carries `restaurant_id` (customers carry `guest_book_id`), and every query is scoped to the signed-in user's restaurant or its guest book. Sessions are re-checked on every request, so deleting a user or changing their role takes effect immediately. Self-service signup and billing are not built: restaurants are created with `pnpm tenant create`.
 - **One availability source.** `AvailabilityService.getFreeTables()` feeds the table suggestion, form validation, the manual table picker and the public widget.
 - **No double booking.** `reservation_tables` mirrors each reservation's time window as a `tstzrange`. A Postgres `EXCLUDE USING gist (table_id WITH =, during WITH &&) WHERE (active)` constraint rejects overlaps, even under concurrent requests, and the API turns them into `409 table_conflict`.
 - **Table suggestion.** First choice is a single table where `min ≤ covers ≤ max`, picking the smallest `max_seats`. Ties go to the higher rating for VIP/SVIP guests and the lower rating otherwise. If no single table fits, it tries predefined join groups, then ad hoc joins of adjacent free tables in the same area. The online widget only offers single tables and predefined groups.

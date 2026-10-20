@@ -70,7 +70,7 @@ export class MessagingService {
         .values({ restaurantId: r.restaurantId, reservationId: r.id, channel: 'email', templateKey: template, language, recipient: email })
         .returning();
       try {
-        await adapter.send({ to: email, ...content });
+        await adapter.send({ to: email, ...content, fromName: rest.name, replyTo: rest.email });
         const [sent] = await this.db.update(messages).set({ status: 'sent', sentAt: new Date() }).where(eq(messages.id, msg.id)).returning();
         return toDto(sent);
       } catch (err) {

@@ -14,6 +14,7 @@ import {
 import { env } from '../config/env';
 import { createDb, type Db } from './client';
 import * as s from './schema';
+import { createRestaurant } from './tenant';
 
 export const guestToken = () => randomBytes(24).toString('base64url');
 export const rangeLiteral = (from: Date, to: Date) => `[${from.toISOString()},${to.toISOString()})`;
@@ -71,21 +72,6 @@ const CUSTOMERS: Array<[first: string, last: string | null, phone: string, type:
   ['Emma', 'Clarke', '+44 7700 900123', 'regular', { language: 'en', email: 'emma.clarke@example.com' }],
 ];
 
-const TAGS: Array<[kind: 'note' | 'dietary' | 'customer', label: string, color: string]> = [
-  ['note', 'birthday', '#ec4899'],
-  ['note', 'anniversary', '#f43f5e'],
-  ['note', 'business', '#0ea5e9'],
-  ['note', 'window seat', '#14b8a6'],
-  ['note', 'high chair', '#f59e0b'],
-  ['dietary', 'vegan', '#22c55e'],
-  ['dietary', 'vegetarian', '#84cc16'],
-  ['dietary', 'gluten free', '#eab308'],
-  ['dietary', 'lactose free', '#a855f7'],
-  ['dietary', 'nut allergy', '#ef4444'],
-  ['customer', 'regular', '#64748b'],
-  ['customer', 'wine lover', '#9333ea'],
-];
-
 export async function seed(db: Db, opts: { slug?: string; name?: string; password?: string; today?: DateTime } = {}) {
   const slug = opts.slug ?? process.env.SEED_SLUG ?? 'restoran';
   const password = opts.password ?? process.env.SEED_PASSWORD ?? 'hostly123';
@@ -93,42 +79,28 @@ export async function seed(db: Db, opts: { slug?: string; name?: string; passwor
   const hash = await bcrypt.hash(password, 10);
 
   return db.transaction(async (tx) => {
-    const [restaurant] = await tx
-      .insert(s.restaurants)
-      .values({
-        slug,
-        name: opts.name ?? process.env.SEED_NAME ?? 'Restoran',
-        timezone,
-        defaultLanguage: 'sr',
-        openingHours: OPENING_HOURS,
-        dayStart: '06:00',
-        defaultDurationMin: 120,
-        slotMinutes: 15,
-        maxPartySize: 20,
-        pacingMaxReservationsPerSlot: 6,
-        pacingMaxCoversPerSlot: 16,
-        onlineSettings: {
-          ...DEFAULT_ONLINE_SETTINGS,
-          shiftCapacity: { lunch: 40, dinner: 60 },
-          instagramUrl: 'https://instagram.com/',
-          websiteUrl: 'https://example.com',
-        },
-        email: 'info@example.com',
-        phone: '+381 21 000 000',
-      })
-      .returning();
+    const { restaurant, owner, area } = await createRestaurant(tx, {
+      name: opts.name ?? process.env.SEED_NAME ?? 'Restoran',
+      slug,
+      timezone,
+      defaultLanguage: 'sr',
+      areaName: 'Restoran',
+      openingHours: OPENING_HOURS,
+      owner: { email: `owner@${slug}.local`, name: 'Owner', password },
+      onlineSettings: { shiftCapacity: { lunch: 40, dinner: 60 }, instagramUrl: 'https://instagram.com/', websiteUrl: 'https://example.com' },
+      extra: { pacingMaxReservationsPerSlot: 6, pacingMaxCoversPerSlot: 16, email: 'info@example.com', phone: '+381 21 000 000' },
+    });
     const rid = restaurant.id;
 
-    const userRows = await tx
+    const hosts = await tx
       .insert(s.users)
       .values([
-        { restaurantId: rid, email: `owner@${slug}.local`, name: 'Owner', role: 'owner' as const, passwordHash: hash },
         { restaurantId: rid, email: `host1@${slug}.local`, name: 'Host 1', role: 'host' as const, passwordHash: hash },
         { restaurantId: rid, email: `host2@${slug}.local`, name: 'Host 2', role: 'host' as const, passwordHash: hash },
       ])
       .returning();
+    const userRows = [owner, ...hosts];
 
-    const [area] = await tx.insert(s.areas).values({ restaurantId: rid, name: 'Restoran', sort: 0 }).returning();
     const tableRows = await tx
       .insert(s.tables)
       .values(
@@ -156,13 +128,12 @@ export async function seed(db: Db, opts: { slug?: string; name?: string; passwor
       { restaurantId: rid, name: 'br 8 + br 10', tableIds: [t['br 8'].id, t['br 10'].id] },
     ]);
 
-    await tx.insert(s.tags).values(TAGS.map(([kind, label, color]) => ({ restaurantId: rid, kind, label, color })));
-
     const customerRows = await tx
       .insert(s.customers)
       .values(
         CUSTOMERS.map(([firstName, lastName, phone, type, extra]) => ({
           restaurantId: rid,
+          guestBookId: restaurant.guestBookId,
           firstName,
           lastName,
           phone: normalizePhone(phone),

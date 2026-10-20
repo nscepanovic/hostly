@@ -42,6 +42,7 @@ export async function login(app: INestApplication, email: string, password = 'se
     post: (url: string, body?: object) => agent.post(url).set('x-hostly', '1').send(body ?? {}),
     patch: (url: string, body?: object) => agent.patch(url).set('x-hostly', '1').send(body ?? {}),
     put: (url: string, body?: object) => agent.put(url).set('x-hostly', '1').send(body ?? {}),
+    delete: (url: string) => agent.delete(url).set('x-hostly', '1'),
   };
 }
 

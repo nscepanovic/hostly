@@ -203,6 +203,7 @@ const sr: Translation = {
     amount: 'Iznos',
     noHistory: 'Još nema poseta',
     searchPlaceholder: 'Ime, telefon ili e-mail',
+    restaurant: 'Restoran',
     lastVisit: 'Poslednja poseta',
   },
   timeline: {
@@ -303,6 +304,10 @@ const sr: Translation = {
     openingHours: 'Radno vreme',
     addShift: 'Dodaj smenu',
     closed: 'Zatvoreno',
+    guestDatabase: 'Baza gostiju',
+    guestPrivate: 'Gosti su vidljivi samo ovom restoranu.',
+    guestShared: 'Gosti se dele sa: {{names}}. Podaci o gostima, oznake, napomene i istorija poseta vidljivi su u svim tim restoranima.',
+    guestSharingHint: 'Deljenje uključuje Hostly podrška na zahtev oba restorana.',
     users: 'Korisnici',
     addUser: 'Dodaj korisnika',
     role: { owner: 'Vlasnik', host: 'Hostesa' },

@@ -3,13 +3,17 @@ import { and, asc, desc, eq, ilike, or, sql, type SQL } from 'drizzle-orm';
 import { normalizePhone, phoneDigits, type CustomerDto, type CustomerInput } from '@hostly/shared';
 import { rethrowConflict } from '../common/pg-errors';
 import { InjectDb, type Db } from '../db/db.module';
-import { customers, reservations, reservationTables, tables, type CustomerRow } from '../db/schema';
+import { customers, reservations, reservationTables, restaurants, tables, type CustomerRow } from '../db/schema';
+import { guestBookRestaurants } from '../db/tenant';
 import { RealtimeService } from '../realtime/realtime.service';
+import { RestaurantService } from '../restaurant/restaurant.service';
 
 export type CustomerSort = 'lastName' | 'firstName' | 'phone' | 'email' | 'visits' | 'createdAt';
 
 export interface VisitDto {
   id: string;
+  /** Which restaurant of the guest book the visit was at. */
+  restaurant: string;
   arrivalAt: string;
   covers: number;
   status: string;
@@ -50,7 +54,18 @@ export class CustomersService {
   constructor(
     @InjectDb() private readonly db: Db,
     private readonly realtime: RealtimeService,
+    private readonly restaurants: RestaurantService,
   ) {}
+
+  /** Customers are scoped by the restaurant's guest book (shared by a group of restaurants or private). */
+  private async book(restaurantId: string): Promise<string> {
+    return (await this.restaurants.get(restaurantId)).guestBookId;
+  }
+
+  /** Every restaurant sharing the book sees guest changes live. */
+  private async emitChanged(guestBookId: string, id: string) {
+    for (const r of await guestBookRestaurants(this.db, guestBookId)) this.realtime.emit(r.id, 'customer.updated', { id });
+  }
 
   private selectWithStats() {
     return this.db
@@ -62,7 +77,7 @@ export class CustomersService {
     restaurantId: string,
     opts: { search?: string; sort?: CustomerSort; dir?: 'asc' | 'desc'; limit: number; offset: number },
   ): Promise<{ total: number; items: CustomerDto[] }> {
-    const conds: SQL[] = [eq(customers.restaurantId, restaurantId)];
+    const conds: SQL[] = [eq(customers.guestBookId, await this.book(restaurantId))];
     const q = opts.search?.trim();
     if (q) {
       const like = `%${q}%`;
@@ -101,7 +116,7 @@ export class CustomersService {
   }
 
   async get(restaurantId: string, id: string): Promise<CustomerDto> {
-    const [row] = await this.selectWithStats().where(and(eq(customers.id, id), eq(customers.restaurantId, restaurantId)));
+    const [row] = await this.selectWithStats().where(and(eq(customers.id, id), eq(customers.guestBookId, await this.book(restaurantId))));
     if (!row) throw new NotFoundException('Customer not found');
     return toDto({ ...row.c, ...row });
   }
@@ -109,7 +124,7 @@ export class CustomersService {
   async lookupByPhone(restaurantId: string, phone: string): Promise<CustomerDto | null> {
     const normalized = normalizePhone(phone);
     if (!normalized) return null;
-    const [row] = await this.selectWithStats().where(and(eq(customers.restaurantId, restaurantId), eq(customers.phone, normalized)));
+    const [row] = await this.selectWithStats().where(and(eq(customers.guestBookId, await this.book(restaurantId)), eq(customers.phone, normalized)));
     return row ? toDto({ ...row.c, ...row }) : null;
   }
 
@@ -131,8 +146,9 @@ export class CustomersService {
 
   async create(restaurantId: string, input: CustomerInput): Promise<CustomerDto> {
     try {
-      const [row] = await this.db.insert(customers).values({ restaurantId, ...this.values(input) }).returning();
-      this.realtime.emit(restaurantId, 'customer.updated', { id: row.id });
+      const guestBookId = await this.book(restaurantId);
+      const [row] = await this.db.insert(customers).values({ restaurantId, guestBookId, ...this.values(input) }).returning();
+      await this.emitChanged(guestBookId, row.id);
       return this.get(restaurantId, row.id);
     } catch (err) {
       rethrowConflict(err, { unique: 'A customer with this phone number already exists' });
@@ -140,14 +156,15 @@ export class CustomersService {
   }
 
   async update(restaurantId: string, id: string, input: CustomerInput): Promise<CustomerDto> {
+    const guestBookId = await this.book(restaurantId);
     try {
       const [row] = await this.db
         .update(customers)
         .set(this.values(input))
-        .where(and(eq(customers.id, id), eq(customers.restaurantId, restaurantId)))
+        .where(and(eq(customers.id, id), eq(customers.guestBookId, guestBookId)))
         .returning();
       if (!row) throw new NotFoundException('Customer not found');
-      this.realtime.emit(restaurantId, 'customer.updated', { id });
+      await this.emitChanged(guestBookId, id);
       return this.get(restaurantId, id);
     } catch (err) {
       if (err instanceof NotFoundException) throw err;
@@ -160,6 +177,7 @@ export class CustomersService {
     const rows = await this.db
       .select({
         id: reservations.id,
+        restaurant: restaurants.name,
         arrivalAt: reservations.arrivalAt,
         covers: reservations.covers,
         status: reservations.status,
@@ -167,10 +185,12 @@ export class CustomersService {
         tables: sql<string[]>`coalesce(array_agg(${tables.label} order by ${tables.label}) filter (where ${tables.id} is not null), '{}')`,
       })
       .from(reservations)
+      .innerJoin(restaurants, eq(restaurants.id, reservations.restaurantId))
       .leftJoin(reservationTables, eq(reservationTables.reservationId, reservations.id))
       .leftJoin(tables, eq(tables.id, reservationTables.tableId))
-      .where(and(eq(reservations.customerId, id), eq(reservations.restaurantId, restaurantId)))
-      .groupBy(reservations.id)
+      // The customer is already checked to be in this book, so history spans all its restaurants.
+      .where(eq(reservations.customerId, id))
+      .groupBy(reservations.id, restaurants.name)
       .orderBy(desc(reservations.arrivalAt))
       .limit(200);
     return rows.map((r) => ({ ...r, arrivalAt: r.arrivalAt.toISOString() }));

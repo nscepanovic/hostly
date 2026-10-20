@@ -19,7 +19,7 @@ import {
   type TableSuggestion,
   type ValidationIssue,
 } from '@hostly/shared';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { AuditService } from '../common/audit.service';
 import { CurrentUser, type AuthUser } from '../common/decorators';
 import { parseDateTime } from '../common/time';
@@ -87,7 +87,8 @@ export class ReservationsController {
     }
     let customerType = null;
     if (q.customerId) {
-      const [c] = await this.db.select({ type: customers.type }).from(customers).where(eq(customers.id, q.customerId));
+      const [c] = await this.db.select({ type: customers.type }).from(customers)
+        .where(and(eq(customers.id, q.customerId), eq(customers.guestBookId, restaurant.guestBookId)));
       customerType = c?.type ?? null;
     }
     return this.availability.suggest(user.restaurantId, { from: from.toJSDate(), to: to.toJSDate() }, q.covers, {

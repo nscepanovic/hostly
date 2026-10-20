@@ -25,7 +25,14 @@ export class EmailAdapter implements ChannelAdapter {
   }
 
   async send(message: OutgoingMessage) {
-    await this.transport.sendMail({ from: env().MAIL_FROM, ...message });
+    const { fromName, replyTo, ...content } = message;
+    // Many restaurants share one sending domain: keep the platform address, show the restaurant's name.
+    const address = env().MAIL_FROM.match(/<([^>]+)>/)?.[1] ?? env().MAIL_FROM;
+    await this.transport.sendMail({
+      ...content,
+      from: fromName ? { name: fromName, address } : env().MAIL_FROM,
+      replyTo: replyTo ?? undefined,
+    });
     if (!env().SMTP_HOST) {
       this.outbox.push(message);
       if (this.outbox.length > 50) this.outbox.shift();

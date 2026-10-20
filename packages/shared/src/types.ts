@@ -39,6 +39,8 @@ export interface RestaurantDto {
   email: string | null;
   phone: string | null;
   address: string | null;
+  /** Other restaurants that share this restaurant's guest database (empty = private). */
+  sharesGuestsWith: Array<{ name: string; slug: string }>;
 }
 
 export interface AreaDto {

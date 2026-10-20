@@ -13,29 +13,30 @@ export interface GuestContact {
 }
 
 /**
- * Finds the customer for a reservation (by id, else by normalized phone) and
- * creates one when a phone number is given. Fills blanks on an existing customer
- * but never overwrites what staff already recorded.
+ * Finds the customer for a reservation (by id, else by normalized phone) in the
+ * restaurant's guest book, and creates one when a phone number is given. Fills
+ * blanks on an existing customer but never overwrites what staff recorded.
  */
 export async function linkCustomer(
   tx: DbOrTx,
-  restaurantId: string,
+  scope: { restaurantId: string; guestBookId: string },
   contact: GuestContact,
   customerId?: string | null,
 ): Promise<CustomerRow | null> {
+  const { restaurantId, guestBookId } = scope;
   let row: CustomerRow | undefined;
   if (customerId) {
     [row] = await tx
       .select()
       .from(customers)
-      .where(and(eq(customers.id, customerId), eq(customers.restaurantId, restaurantId)));
+      .where(and(eq(customers.id, customerId), eq(customers.guestBookId, guestBookId)));
   }
   const phone = normalizePhone(contact.phone);
   if (!row && phone) {
     [row] = await tx
       .select()
       .from(customers)
-      .where(and(eq(customers.restaurantId, restaurantId), eq(customers.phone, phone)));
+      .where(and(eq(customers.guestBookId, guestBookId), eq(customers.phone, phone)));
   }
   if (!row) {
     if (!phone) return null;
@@ -43,6 +44,7 @@ export async function linkCustomer(
     const [created] = await tx
       .insert(customers)
       .values({
+        guestBookId,
         restaurantId,
         firstName: contact.firstName ?? null,
         lastName: contact.lastName ?? null,
@@ -57,7 +59,7 @@ export async function linkCustomer(
     [row] = await tx
       .select()
       .from(customers)
-      .where(and(eq(customers.restaurantId, restaurantId), eq(customers.phone, phone)));
+      .where(and(eq(customers.guestBookId, guestBookId), eq(customers.phone, phone)));
     return row ?? null;
   }
 

@@ -14,6 +14,7 @@ import { CustomerFields } from '@/features/customers/CustomerForm';
 
 interface Visit {
   id: string;
+  restaurant: string;
   arrivalAt: string;
   covers: number;
   status: string;
@@ -32,6 +33,7 @@ export default function CustomerPage() {
   const c = customer.data;
   if (!c || !restaurant) return <p className="p-6 text-muted">{t('common.loading')}</p>;
   const fmt = (iso: string) => DateTime.fromISO(iso).setZone(restaurant.timezone).setLocale(luxonLocale(i18n.language)).toFormat('ccc dd.LL.yyyy HH:mm');
+  const shared = restaurant.sharesGuestsWith.length > 0;
   const spent = (visits.data ?? []).filter((v) => v.spend !== null);
   const avgSpend = spent.length ? Math.round(spent.reduce((n, v) => n + v.spend!, 0) / spent.length) : null;
 
@@ -71,6 +73,7 @@ export default function CustomerPage() {
               <thead className="text-xs text-muted uppercase">
                 <tr>
                   <th className="py-2">{t('customers.date')}</th>
+                  {shared && <th className="py-2 pl-3">{t('customers.restaurant')}</th>}
                   <th className="py-2 text-right">{t('common.covers')}</th>
                   <th className="py-2 pl-3">{t('common.table')}</th>
                   <th className="py-2 text-right">{t('customers.amount')}</th>
@@ -83,6 +86,7 @@ export default function CustomerPage() {
                       {fmt(v.arrivalAt)}
                       {v.status !== 'completed' && <span className="ml-2 text-xs text-muted">{t(`status.${v.status}`)}</span>}
                     </td>
+                    {shared && <td className="pl-3">{v.restaurant}</td>}
                     <td className="text-right tabular-nums">{v.covers}</td>
                     <td className="pl-3">{v.tables.join(', ')}</td>
                     <td className="text-right tabular-nums">{v.spend?.toLocaleString(i18n.language) ?? ''}</td>

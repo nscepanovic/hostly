@@ -43,8 +43,21 @@ const restaurantRef = () =>
     .notNull()
     .references(() => restaurants.id, { onDelete: 'cascade' });
 
+/**
+ * A guest database. Each restaurant has one; restaurants that share guests
+ * (e.g. locations of one owner) point to the same book. Guests never cross books.
+ */
+export const guestBooks = pgTable('guest_books', {
+  id: id(),
+  name: text('name').notNull(),
+  createdAt: createdAt(),
+});
+
 export const restaurants = pgTable('restaurants', {
   id: id(),
+  guestBookId: uuid('guest_book_id')
+    .notNull()
+    .references(() => guestBooks.id),
   slug: text('slug').notNull().unique(),
   name: text('name').notNull(),
   timezone: text('timezone').notNull().default('Europe/Belgrade'),
@@ -122,6 +135,11 @@ export const customers = pgTable(
   'customers',
   {
     id: id(),
+    /** The guest book this guest lives in: every customer query is scoped by it. */
+    guestBookId: uuid('guest_book_id')
+      .notNull()
+      .references(() => guestBooks.id, { onDelete: 'cascade' }),
+    /** Restaurant where the guest was first recorded (informational). */
     restaurantId: restaurantRef(),
     firstName: text('first_name'),
     lastName: text('last_name'),
@@ -137,8 +155,8 @@ export const customers = pgTable(
     createdAt: createdAt(),
   },
   (t) => [
-    uniqueIndex('customers_phone_uq').on(t.restaurantId, t.phone),
-    index('customers_name_idx').on(t.restaurantId, t.lastName),
+    uniqueIndex('customers_phone_uq').on(t.guestBookId, t.phone),
+    index('customers_name_idx').on(t.guestBookId, t.lastName),
   ],
 );
 
@@ -267,6 +285,7 @@ export const auditLog = pgTable(
   (t) => [index('audit_entity_idx').on(t.entityId)],
 );
 
+export type GuestBookRow = typeof guestBooks.$inferSelect;
 export type RestaurantRow = typeof restaurants.$inferSelect;
 export type UserRow = typeof users.$inferSelect;
 export type AreaRow = typeof areas.$inferSelect;

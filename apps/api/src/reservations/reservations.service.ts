@@ -18,7 +18,7 @@ import { isExclusionViolation } from '../common/pg-errors';
 import { businessDayWindow, parseDateTime } from '../common/time';
 import type { DbOrTx } from '../db/client';
 import { InjectDb, type Db } from '../db/db.module';
-import { customers, reservations, reservationTables, tables, type ReservationRow, type RestaurantRow } from '../db/schema';
+import { areas, customers, reservations, reservationTables, tables, type ReservationRow, type RestaurantRow } from '../db/schema';
 import { linkCustomer } from '../customers/customer-link';
 import { MessagingService } from '../messaging/messaging.service';
 import { RealtimeService } from '../realtime/realtime.service';
@@ -177,6 +177,15 @@ export class ReservationsService {
     return { arrival, departure };
   }
 
+  private async assertAreaOwned(tx: DbOrTx, restaurantId: string, areaId: string | null | undefined) {
+    if (!areaId) return;
+    const [row] = await tx
+      .select({ id: areas.id })
+      .from(areas)
+      .where(and(eq(areas.id, areaId), eq(areas.restaurantId, restaurantId)));
+    if (!row) throw new BadRequestException('Unknown area');
+  }
+
   private async assertTablesOwned(tx: DbOrTx, restaurantId: string, tableIds: string[]) {
     if (!tableIds.length) return;
     const rows = await tx
@@ -256,6 +265,7 @@ export class ReservationsService {
 
     const dto = await this.inTx(async (tx) => {
       await this.assertTablesOwned(tx, restaurant.id, input.tableIds);
+      await this.assertAreaOwned(tx, restaurant.id, input.areaId);
       const issues = await this.availability.validate(
         restaurant,
         { arrival, departure, covers: input.covers, tableIds: input.tableIds, checkPast: input.status !== 'seated' },
@@ -263,7 +273,7 @@ export class ReservationsService {
       );
       this.throwIfBlocking(opts.skipSoftChecks ? issues.filter((i) => i.hard) : issues, input.force);
 
-      const customer = await linkCustomer(tx, restaurant.id, input, input.customerId);
+      const customer = await linkCustomer(tx, { restaurantId: restaurant.id, guestBookId: restaurant.guestBookId }, input, input.customerId);
       const [row] = await tx
         .insert(reservations)
         .values({
@@ -334,6 +344,7 @@ export class ReservationsService {
       const status = patch.status ?? row.status;
 
       if (patch.tableIds) await this.assertTablesOwned(tx, restaurant.id, patch.tableIds);
+      await this.assertAreaOwned(tx, restaurant.id, patch.areaId);
       const tablesChanged = !!patch.tableIds && patch.tableIds.join() !== before.tableIds.join();
       if (timeChanged || tablesChanged || patch.covers !== undefined || (isActive(status) && !isActive(row.status))) {
         const issues = await this.availability.validate(
@@ -350,7 +361,7 @@ export class ReservationsService {
       if (patch.phone !== undefined || patch.customerId !== undefined || patch.birthday !== undefined) {
         const customer = await linkCustomer(
           tx,
-          restaurant.id,
+          { restaurantId: restaurant.id, guestBookId: restaurant.guestBookId },
           { ...before, ...patch, language: patch.language ?? row.language },
           patch.customerId === undefined ? row.customerId : patch.customerId,
         );

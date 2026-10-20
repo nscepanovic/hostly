@@ -15,6 +15,13 @@
       "when": 1792507694068,
       "tag": "0001_double_booking_guard",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792515407067,
+      "tag": "0002_guest_books",
+      "breakpoints": true
     }
   ]
 }

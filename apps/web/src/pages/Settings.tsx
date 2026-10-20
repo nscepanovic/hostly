@@ -160,6 +160,16 @@ export default function SettingsPage() {
           </div>
         </section>
 
+        <section className="card p-4">
+          <h3 className="mb-2 font-semibold">{t('settings.guestDatabase')}</h3>
+          <p>
+            {restaurant?.sharesGuestsWith.length
+              ? t('settings.guestShared', { names: restaurant.sharesGuestsWith.map((r) => r.name).join(', ') })
+              : t('settings.guestPrivate')}
+          </p>
+          <p className="mt-1 text-sm text-muted">{t('settings.guestSharingHint')}</p>
+        </section>
+
         <Users />
       </div>
       <div className="safe-bottom fixed right-4 bottom-20 z-10 md:bottom-4">

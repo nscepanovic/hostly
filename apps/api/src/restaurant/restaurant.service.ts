@@ -1,10 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
+import { and, eq, ne } from 'drizzle-orm';
 import type { OnlineSettings, RestaurantDto, RestaurantSettingsInput } from '@hostly/shared';
 import { InjectDb, type Db } from '../db/db.module';
 import { restaurants, type RestaurantRow } from '../db/schema';
 
-export const toRestaurantDto = (r: RestaurantRow): RestaurantDto => ({
+export const toRestaurantDto = (r: RestaurantRow, sharesGuestsWith: RestaurantDto['sharesGuestsWith'] = []): RestaurantDto => ({
   id: r.id,
   slug: r.slug,
   name: r.name,
@@ -21,6 +21,7 @@ export const toRestaurantDto = (r: RestaurantRow): RestaurantDto => ({
   email: r.email,
   phone: r.phone,
   address: r.address,
+  sharesGuestsWith,
 });
 
 @Injectable()
@@ -31,6 +32,16 @@ export class RestaurantService {
     const [row] = await this.db.select().from(restaurants).where(eq(restaurants.id, id));
     if (!row) throw new NotFoundException('Restaurant not found');
     return row;
+  }
+
+  /** The restaurant as the staff app sees it, including guest-book sharing. */
+  async getDto(id: string): Promise<RestaurantDto> {
+    const row = await this.get(id);
+    const peers = await this.db
+      .select({ name: restaurants.name, slug: restaurants.slug })
+      .from(restaurants)
+      .where(and(eq(restaurants.guestBookId, row.guestBookId), ne(restaurants.id, id)));
+    return toRestaurantDto(row, peers);
   }
 
   async getBySlug(slug: string): Promise<RestaurantRow> {

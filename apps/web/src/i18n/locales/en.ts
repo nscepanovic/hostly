@@ -201,6 +201,7 @@ const en = {
     amount: 'Amount',
     noHistory: 'No visits yet',
     searchPlaceholder: 'Name, phone or e-mail',
+    restaurant: 'Restaurant',
     lastVisit: 'Last visit',
   },
   timeline: {
@@ -301,6 +302,10 @@ const en = {
     openingHours: 'Opening hours',
     addShift: 'Add shift',
     closed: 'Closed',
+    guestDatabase: 'Guest database',
+    guestPrivate: 'Guests are private to this restaurant.',
+    guestShared: 'Guests are shared with: {{names}}. Guest details, flags, notes and visit history are visible in all of them.',
+    guestSharingHint: 'Sharing is set up by Hostly support at the request of both restaurants.',
     users: 'Users',
     addUser: 'Add user',
     role: { owner: 'Owner', host: 'Host' },
