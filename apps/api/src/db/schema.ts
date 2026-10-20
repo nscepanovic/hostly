@@ -1,4 +1,5 @@
 import { sql } from 'drizzle-orm';
+import { decrypt, encrypt } from '../common/crypto';
 import {
   boolean,
   customType,
@@ -32,6 +33,20 @@ import type {
   TagKind,
   WaitingStatus,
 } from '@hostly/shared';
+
+/** Personal data: AES-256-GCM encrypted on write, decrypted on read (see common/crypto.ts). */
+const encryptedText = customType<{ data: string; driverData: string }>({
+  dataType: () => 'text',
+  toDriver: (value) => encrypt(value),
+  fromDriver: (value) => decrypt(value),
+});
+
+/** Encrypted JSON document (audit snapshots contain personal data). */
+const encryptedJson = customType<{ data: unknown; driverData: string }>({
+  dataType: () => 'text',
+  toDriver: (value) => encrypt(JSON.stringify(value)),
+  fromDriver: (value) => JSON.parse(decrypt(value)),
+});
 
 /** Postgres tstzrange, written as '[from,to)'. Only used for the double-booking exclusion constraint. */
 const tstzrange = customType<{ data: string }>({ dataType: () => 'tstzrange' });
@@ -81,13 +96,15 @@ export const users = pgTable(
   {
     id: id(),
     restaurantId: restaurantRef(),
-    email: text('email').notNull(),
+    email: encryptedText('email').notNull(),
+    /** Blind index of the lowercased email: login lookup and uniqueness. */
+    emailIndex: text('email_bidx').notNull(),
     passwordHash: text('password_hash').notNull(),
-    name: text('name').notNull(),
+    name: encryptedText('name').notNull(),
     role: text('role').$type<Role>().notNull(),
     createdAt: createdAt(),
   },
-  (t) => [uniqueIndex('users_email_uq').on(sql`lower(${t.email})`)],
+  (t) => [uniqueIndex('users_email_bidx_uq').on(t.emailIndex)],
 );
 
 export const areas = pgTable(
@@ -141,22 +158,28 @@ export const customers = pgTable(
       .references(() => guestBooks.id, { onDelete: 'cascade' }),
     /** Restaurant where the guest was first recorded (informational). */
     restaurantId: restaurantRef(),
-    firstName: text('first_name'),
-    lastName: text('last_name'),
-    phone: text('phone'),
-    email: text('email'),
+    firstName: encryptedText('first_name'),
+    lastName: encryptedText('last_name'),
+    phone: encryptedText('phone'),
+    email: encryptedText('email'),
     language: text('language').$type<Language>(),
-    birthday: date('birthday', { mode: 'string' }),
-    company: text('company'),
+    /** YYYY-MM-DD, encrypted. */
+    birthday: encryptedText('birthday'),
+    company: encryptedText('company'),
     type: text('type').$type<CustomerType>().notNull().default('regular'),
-    notes: text('notes'),
+    notes: encryptedText('notes'),
     tags: text('tags').array().notNull().default(sql`'{}'::text[]`),
     averageSpend: numeric('average_spend', { mode: 'number' }),
+    /** Blind indexes (see common/crypto.ts): exact phone/email lookup and name/email/phone search. */
+    phoneIndex: text('phone_bidx'),
+    emailIndex: text('email_bidx'),
+    searchTokens: text('search_tokens').array().notNull().default(sql`'{}'::text[]`),
     createdAt: createdAt(),
   },
   (t) => [
-    uniqueIndex('customers_phone_uq').on(t.guestBookId, t.phone),
-    index('customers_name_idx').on(t.guestBookId, t.lastName),
+    uniqueIndex('customers_phone_bidx_uq').on(t.guestBookId, t.phoneIndex),
+    index('customers_email_bidx_idx').on(t.guestBookId, t.emailIndex),
+    index('customers_search_idx').using('gin', t.searchTokens),
   ],
 );
 
@@ -166,17 +189,17 @@ export const reservations = pgTable(
     id: id(),
     restaurantId: restaurantRef(),
     customerId: uuid('customer_id').references(() => customers.id, { onDelete: 'set null' }),
-    firstName: text('first_name'),
-    lastName: text('last_name'),
-    phone: text('phone'),
-    email: text('email'),
+    firstName: encryptedText('first_name'),
+    lastName: encryptedText('last_name'),
+    phone: encryptedText('phone'),
+    email: encryptedText('email'),
     covers: integer('covers').notNull(),
     arrivalAt: timestamp('arrival_at', { withTimezone: true }).notNull(),
     departureAt: timestamp('departure_at', { withTimezone: true }).notNull(),
     purpose: text('purpose').$type<Purpose>().notNull().default('food'),
     status: text('status').$type<ReservationStatus>().notNull(),
     source: text('source').$type<ReservationSource>().notNull(),
-    notes: text('notes'),
+    notes: encryptedText('notes'),
     dietary: text('dietary').array().notNull().default(sql`'{}'::text[]`),
     tags: text('tags').array().notNull().default(sql`'{}'::text[]`),
     fixMenu: boolean('fix_menu').notNull().default(false),
@@ -184,7 +207,7 @@ export const reservations = pgTable(
     areaId: uuid('area_id').references(() => areas.id, { onDelete: 'set null' }),
     extras: jsonb('extras').$type<ReservationExtras>().notNull().default({}),
     spend: numeric('spend', { mode: 'number' }),
-    declineReason: text('decline_reason'),
+    declineReason: encryptedText('decline_reason'),
     /** Secret for the guest's confirm/cancel links. */
     guestToken: text('guest_token').notNull().unique(),
     seatedAt: timestamp('seated_at', { withTimezone: true }),
@@ -226,10 +249,10 @@ export const waitingEntries = pgTable(
   {
     id: id(),
     restaurantId: restaurantRef(),
-    guestName: text('guest_name').notNull(),
-    phone: text('phone'),
+    guestName: encryptedText('guest_name').notNull(),
+    phone: encryptedText('phone'),
     covers: integer('covers').notNull(),
-    notes: text('notes'),
+    notes: encryptedText('notes'),
     status: text('status').$type<WaitingStatus>().notNull().default('waiting'),
     createdAt: createdAt(),
     notifiedAt: timestamp('notified_at', { withTimezone: true }),
@@ -260,7 +283,7 @@ export const messages = pgTable(
     channel: text('channel').$type<MessageChannel>().notNull(),
     templateKey: text('template_key').$type<MessageTemplate>().notNull(),
     language: text('language').$type<Language>().notNull(),
-    recipient: text('recipient').notNull(),
+    recipient: encryptedText('recipient').notNull(),
     status: text('status').$type<MessageStatus>().notNull().default('queued'),
     error: text('error'),
     sentAt: timestamp('sent_at', { withTimezone: true }),
@@ -278,12 +301,18 @@ export const auditLog = pgTable(
     entity: text('entity').notNull(),
     entityId: uuid('entity_id').notNull(),
     action: text('action').notNull(),
-    before: jsonb('before'),
-    after: jsonb('after'),
+    before: encryptedJson('before'),
+    after: encryptedJson('after'),
     at: timestamp('at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index('audit_entity_idx').on(t.entityId)],
 );
+
+/** Small key/value store for operational state (e.g. which blind-index key built the indexes). */
+export const appMeta = pgTable('app_meta', {
+  key: text('key').primaryKey(),
+  value: text('value').notNull(),
+});
 
 export type GuestBookRow = typeof guestBooks.$inferSelect;
 export type RestaurantRow = typeof restaurants.$inferSelect;

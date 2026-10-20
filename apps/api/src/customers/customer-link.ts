@@ -2,6 +2,8 @@ import { and, eq } from 'drizzle-orm';
 import { normalizePhone, type Language } from '@hostly/shared';
 import type { DbOrTx } from '../db/client';
 import { customers, type CustomerRow } from '../db/schema';
+import { phoneIndex } from '../common/crypto';
+import { customerIndexes } from './customer-indexes';
 
 export interface GuestContact {
   firstName?: string | null;
@@ -36,7 +38,7 @@ export async function linkCustomer(
     [row] = await tx
       .select()
       .from(customers)
-      .where(and(eq(customers.guestBookId, guestBookId), eq(customers.phone, phone)));
+      .where(and(eq(customers.guestBookId, guestBookId), eq(customers.phoneIndex, phoneIndex(phone)!)));
   }
   if (!row) {
     if (!phone) return null;
@@ -52,6 +54,7 @@ export async function linkCustomer(
         email: contact.email ?? null,
         language: contact.language ?? null,
         birthday: contact.birthday ?? null,
+        ...customerIndexes({ ...contact, phone }),
       })
       .onConflictDoNothing()
       .returning();
@@ -59,7 +62,7 @@ export async function linkCustomer(
     [row] = await tx
       .select()
       .from(customers)
-      .where(and(eq(customers.guestBookId, guestBookId), eq(customers.phone, phone)));
+      .where(and(eq(customers.guestBookId, guestBookId), eq(customers.phoneIndex, phoneIndex(phone)!)));
     return row ?? null;
   }
 
@@ -71,7 +74,9 @@ export async function linkCustomer(
   if (!row.language && contact.language) patch.language = contact.language;
   if (contact.birthday && contact.birthday !== row.birthday) patch.birthday = contact.birthday;
   if (Object.keys(patch).length) {
-    [row] = await tx.update(customers).set(patch).where(eq(customers.id, row.id)).returning();
+    const contactChanged = ['firstName', 'lastName', 'email', 'phone'].some((k) => k in patch);
+    const indexes = contactChanged ? customerIndexes({ ...row, ...patch }) : {};
+    [row] = await tx.update(customers).set({ ...patch, ...indexes }).where(eq(customers.id, row.id)).returning();
   }
   return row;
 }

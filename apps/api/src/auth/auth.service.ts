@@ -1,18 +1,17 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import bcrypt from 'bcryptjs';
-import { and, eq, sql } from 'drizzle-orm';
-import type { Role, UserDto } from '@hostly/shared';
+import { and, eq } from 'drizzle-orm';
+import { emailIndex } from '../common/crypto';
+import type { UserDto } from '@hostly/shared';
 import { InjectDb, type Db } from '../db/db.module';
 import { users, type UserRow } from '../db/schema';
 import type { AuthUser } from '../common/decorators';
 
+/** Ids only: the token is signed, not encrypted, so it carries no personal data. */
 interface JwtPayload {
   sub: string;
   rid: string;
-  role: Role;
-  name: string;
-  email: string;
 }
 
 export const toUserDto = (u: UserRow): UserDto => ({
@@ -34,7 +33,7 @@ export class AuthService {
     const [user] = await this.db
       .select()
       .from(users)
-      .where(eq(sql`lower(${users.email})`, email.toLowerCase()));
+      .where(eq(users.emailIndex, emailIndex(email)!));
     // Compare against a dummy hash when the user is missing so timing does not leak which emails exist.
     const ok = await bcrypt.compare(password, user?.passwordHash ?? '$2b$10$invalidinvalidinvalidinvalidinvalidinvalidinvalidinva');
     if (!user || !ok) throw new UnauthorizedException('Invalid email or password');
@@ -42,7 +41,7 @@ export class AuthService {
   }
 
   sign(user: UserRow): Promise<string> {
-    const payload: JwtPayload = { sub: user.id, rid: user.restaurantId, role: user.role, name: user.name, email: user.email };
+    const payload: JwtPayload = { sub: user.id, rid: user.restaurantId };
     return this.jwt.signAsync(payload);
   }
 

@@ -3,6 +3,8 @@ import { and, eq, inArray, or, sql } from 'drizzle-orm';
 import { DEFAULT_ONLINE_SETTINGS, type Language, type OpeningHours, type OnlineSettings } from '@hostly/shared';
 import type { DbOrTx } from './client';
 import * as s from './schema';
+import { emailIndex } from '../common/crypto';
+import { customerIndexes } from '../customers/customer-indexes';
 
 /** Lunch + dinner every day; owners adjust it in Settings. */
 export const DEFAULT_OPENING_HOURS: OpeningHours = Object.fromEntries(
@@ -76,6 +78,7 @@ export async function createRestaurant(tx: DbOrTx, input: NewRestaurant) {
     .values({
       restaurantId: restaurant.id,
       email: input.owner.email.toLowerCase(),
+      emailIndex: emailIndex(input.owner.email)!,
       name: input.owner.name,
       role: 'owner',
       passwordHash: await bcrypt.hash(input.owner.password, 10),
@@ -112,26 +115,32 @@ export async function shareGuests(tx: DbOrTx, restaurantId: string, targetRestau
   const movingRestaurants = await tx.select({ id: s.restaurants.id }).from(s.restaurants).where(eq(s.restaurants.guestBookId, fromBook));
 
   const incoming = await tx.select().from(s.customers).where(eq(s.customers.guestBookId, fromBook));
-  const phones = incoming.map((c) => c.phone).filter((p): p is string => !!p);
-  const existing = phones.length
+  // Phones are encrypted: match on their blind index.
+  const phoneKeys = incoming.map((c) => c.phoneIndex).filter((p): p is string => !!p);
+  const existing = phoneKeys.length
     ? await tx
         .select()
         .from(s.customers)
-        .where(and(eq(s.customers.guestBookId, toBook), inArray(s.customers.phone, phones)))
+        .where(and(eq(s.customers.guestBookId, toBook), inArray(s.customers.phoneIndex, phoneKeys)))
     : [];
-  const byPhone = new Map(existing.map((c) => [c.phone!, c]));
+  const byPhone = new Map(existing.map((c) => [c.phoneIndex!, c]));
 
   let merged = 0;
   for (const c of incoming) {
-    const twin = c.phone ? byPhone.get(c.phone) : undefined;
+    const twin = c.phoneIndex ? byPhone.get(c.phoneIndex) : undefined;
     if (!twin) continue;
     await tx.update(s.reservations).set({ customerId: twin.id }).where(eq(s.reservations.customerId, c.id));
+    const contact = {
+      firstName: twin.firstName ?? c.firstName,
+      lastName: twin.lastName ?? c.lastName,
+      phone: twin.phone,
+      email: twin.email ?? c.email,
+    };
     await tx
       .update(s.customers)
       .set({
-        firstName: twin.firstName ?? c.firstName,
-        lastName: twin.lastName ?? c.lastName,
-        email: twin.email ?? c.email,
+        ...contact,
+        ...customerIndexes(contact),
         language: twin.language ?? c.language,
         birthday: twin.birthday ?? c.birthday,
         company: twin.company ?? c.company,

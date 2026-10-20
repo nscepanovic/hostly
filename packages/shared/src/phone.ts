@@ -31,3 +31,10 @@ export function formatPhone(e164: string | null | undefined): string {
   if (!parsed) return e164;
   return parsed.country === 'RS' ? parsed.formatNational() : parsed.formatInternational();
 }
+
+/** Digit-only forms of an E.164 number: international (381649964772) and national (0649964772). */
+export function phoneDigitForms(e164: string): { intl: string; national: string } {
+  const parsed = parsePhoneNumberFromString(e164);
+  const intl = e164.replace(/\D/g, '');
+  return { intl, national: parsed ? parsed.formatNational().replace(/\D/g, '') : intl };
+}

@@ -89,6 +89,38 @@ When a restaurant joins a group, its guests move into the shared book. A guest w
 
 Guest emails go out from the platform's `MAIL_FROM` address but under the restaurant's name, with Reply-To set to the restaurant's email.
 
+## Personal data encryption
+
+Personal data is encrypted in the database with AES-256-GCM. The key lives in the server's environment, never in the database, so a database dump or backup alone does not reveal it.
+
+| Encrypted | Where |
+| --- | --- |
+| first name, last name, phone, email, birthday, company, notes | guests (`customers`) |
+| first name, last name, phone, email, notes, decline reason | `reservations` |
+| guest name, phone, notes | `waiting_entries` |
+| recipient email | `messages` |
+| before/after snapshots | `audit_log` |
+| name, email | staff `users` (passwords are bcrypt hashes) |
+
+**Search still works** through blind indexes: keyed HMAC-SHA256 tokens stored beside the ciphertext, built with a separate key.
+
+- First name and last name: word prefixes, ignoring case and diacritics (`jov`, `jovanovic` and `Jovanović` all match).
+- Email: whole address, prefixes, and parts (`sanja.j@ex`, `example`).
+- Phone: digit prefixes in local and international form, plus last digits (`064 99`, `+381 64`, `4772`).
+- Exact lookups use dedicated indexes: phone autocomplete, guest uniqueness per guest book, and staff login by email.
+
+Encryption happens in the Drizzle column types (`apps/api/src/db/schema.ts`), so application code reads and writes plaintext. Lists of guests are filtered by token in SQL and sorted after decryption.
+
+The trade-offs are deliberate. Blind indexes reveal equality: someone with database access can see that two rows share a token, but not what it is. Substring search inside a word (e.g. `anja` finding `Sanja`) is not supported.
+
+**Keys** (generate each with `openssl rand -base64 32`):
+
+- `DATA_ENCRYPTION_KEYS="1:<key>"` and `BLIND_INDEX_KEY=<key>`. Both are required in production; development and tests use built-in dev keys.
+- **Back up both keys separately from the database.** Without them the data is unreadable.
+- **Rotating the data key:** add a key (`1:<old>,2:<new>`), set `DATA_ENCRYPTION_KEY_ID=2`, and run `pnpm db:migrate`, which re-encrypts every row. Remove the old key only after that finishes.
+- **Changing `BLIND_INDEX_KEY`:** the next `pnpm db:migrate` rebuilds all search indexes.
+- `pnpm db:migrate` also encrypts any data still stored in plaintext. Upgrading an existing database is therefore one command.
+
 ## Tests
 
 ```bash
@@ -96,8 +128,8 @@ pnpm test
 ```
 
 - `packages/shared`: phone normalization, duration rules (vitest)
-- `apps/api` unit: table suggestion rules, timezone/shift helpers (jest)
-- `apps/api` e2e (against `hostly_test`, wiped on every run): tenant isolation and guest-book sharing (merge, unshare), auth and roles, creating reservations with customer linking and VIP ranking, double-booking prevention including a 6-way concurrent race, status flow and audit log, and the public widget end to end (availability, booking, held table, emails in the guest's language, guest cancel, full slot, honeypot)
+- `apps/api` unit: table suggestion rules, timezone/shift helpers, encryption and key rotation, blind-index search (jest)
+- `apps/api` e2e (against `hostly_test`, wiped on every run): no plaintext personal data at rest and search over encrypted fields, tenant isolation and guest-book sharing (merge, unshare), auth and roles, creating reservations with customer linking and VIP ranking, double-booking prevention including a 6-way concurrent race, status flow and audit log, and the public widget end to end (availability, booking, held table, emails in the guest's language, guest cancel, full slot, honeypot)
 - `apps/web`: floor-plan table state logic (vitest)
 
 Set `TEST_DATABASE_URL` to use a different test database (default: the Docker one on port 5433). The URL must contain `test`.
@@ -125,7 +157,7 @@ See `.env.example` for the full list. The important ones:
 sudo -u postgres createuser -P hostly && sudo -u postgres createdb -O hostly hostly
 git clone <repo> hostly && cd hostly
 pnpm install --frozen-lockfile
-cp .env.example .env   # set NODE_ENV=production, JWT_SECRET, APP_URL, CORS_ORIGIN, COOKIE_SECURE=true, SMTP_*
+cp .env.example .env   # set NODE_ENV=production, JWT_SECRET, DATA_ENCRYPTION_KEYS, BLIND_INDEX_KEY, APP_URL, CORS_ORIGIN, COOKIE_SECURE=true, SMTP_*
 pnpm build
 node apps/api/dist/db/migrate.js
 SEED_PASSWORD='<strong password>' pnpm db:seed   # first deploy only; change passwords afterwards

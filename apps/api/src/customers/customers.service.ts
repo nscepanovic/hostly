@@ -1,6 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { and, asc, desc, eq, ilike, or, sql, type SQL } from 'drizzle-orm';
-import { normalizePhone, phoneDigits, type CustomerDto, type CustomerInput } from '@hostly/shared';
+import { and, desc, eq, inArray, sql, type SQL } from 'drizzle-orm';
+import { normalizePhone, type CustomerDto, type CustomerInput } from '@hostly/shared';
+import { guestQueryTokens, phoneIndex } from '../common/crypto';
+import { customerIndexes } from './customer-indexes';
 import { rethrowConflict } from '../common/pg-errors';
 import { InjectDb, type Db } from '../db/db.module';
 import { customers, reservations, reservationTables, restaurants, tables, type CustomerRow } from '../db/schema';
@@ -21,13 +23,10 @@ export interface VisitDto {
   spend: number | null;
 }
 
-// Counters as correlated subqueries so list sorting by visits stays in SQL.
-const visitsSql = sql<number>`(select count(*)::int from ${reservations} r where r.customer_id = "customers"."id" and r.status in ('completed','seated'))`;
-const cancelSql = sql<number>`(select count(*)::int from ${reservations} r where r.customer_id = "customers"."id" and r.status = 'cancelled')`;
-const noShowSql = sql<number>`(select count(*)::int from ${reservations} r where r.customer_id = "customers"."id" and r.status = 'no_show')`;
-const lastVisitSql = sql<Date | null>`(select max(r.arrival_at) from ${reservations} r where r.customer_id = "customers"."id" and r.status in ('completed','seated'))`;
+type Stats = { visits: number; cancellations: number; noShows: number; lastVisitAt: Date | string | null };
+const NO_STATS: Stats = { visits: 0, cancellations: 0, noShows: 0, lastVisitAt: null };
 
-const toDto = (c: CustomerRow & { visits: number; cancellations: number; noShows: number; lastVisitAt: Date | string | null }): CustomerDto => ({
+const toDto = (c: CustomerRow, st: Stats = NO_STATS): CustomerDto => ({
   id: c.id,
   firstName: c.firstName,
   lastName: c.lastName,
@@ -42,12 +41,14 @@ const toDto = (c: CustomerRow & { visits: number; cancellations: number; noShows
   averageSpend: c.averageSpend,
   createdAt: c.createdAt.toISOString(),
   stats: {
-    visits: c.visits,
-    cancellations: c.cancellations,
-    noShows: c.noShows,
-    lastVisitAt: c.lastVisitAt ? new Date(c.lastVisitAt).toISOString() : null,
+    visits: st.visits,
+    cancellations: st.cancellations,
+    noShows: st.noShows,
+    lastVisitAt: st.lastVisitAt ? new Date(st.lastVisitAt).toISOString() : null,
   },
 });
+
+const collator = new Intl.Collator('sr-Latn', { sensitivity: 'base', numeric: true });
 
 @Injectable()
 export class CustomersService {
@@ -67,73 +68,95 @@ export class CustomersService {
     for (const r of await guestBookRestaurants(this.db, guestBookId)) this.realtime.emit(r.id, 'customer.updated', { id });
   }
 
-  private selectWithStats() {
-    return this.db
-      .select({ c: customers, visits: visitsSql, cancellations: cancelSql, noShows: noShowSql, lastVisitAt: lastVisitSql })
-      .from(customers);
+  /** Visit counters for the given customers, from all restaurants of their guest book. */
+  private async stats(customerIds: string[]): Promise<Map<string, Stats>> {
+    if (!customerIds.length) return new Map();
+    const rows = await this.db
+      .select({
+        id: reservations.customerId,
+        visits: sql<number>`count(*) filter (where ${reservations.status} in ('completed','seated'))::int`,
+        cancellations: sql<number>`count(*) filter (where ${reservations.status} = 'cancelled')::int`,
+        noShows: sql<number>`count(*) filter (where ${reservations.status} = 'no_show')::int`,
+        lastVisitAt: sql<string | null>`max(${reservations.arrivalAt}) filter (where ${reservations.status} in ('completed','seated'))`,
+      })
+      .from(reservations)
+      .where(inArray(reservations.customerId, customerIds))
+      .groupBy(reservations.customerId);
+    return new Map(rows.map((r) => [r.id!, r]));
   }
 
+  /**
+   * Names, phones and emails are encrypted, so filtering uses blind-index search
+   * tokens in SQL, and sorting happens after decryption. A guest book holds a
+   * restaurant group's guests (thousands, not millions), which keeps this cheap.
+   */
   async list(
     restaurantId: string,
     opts: { search?: string; sort?: CustomerSort; dir?: 'asc' | 'desc'; limit: number; offset: number },
   ): Promise<{ total: number; items: CustomerDto[] }> {
     const conds: SQL[] = [eq(customers.guestBookId, await this.book(restaurantId))];
-    const q = opts.search?.trim();
-    if (q) {
-      const like = `%${q}%`;
-      const digits = phoneDigits(q);
-      conds.push(
-        or(
-          ilike(customers.firstName, like),
-          ilike(customers.lastName, like),
-          ilike(customers.email, like),
-          ilike(customers.company, like),
-          sql`(${customers.firstName} || ' ' || ${customers.lastName}) ilike ${like}`,
-          sql`(${customers.lastName} || ' ' || ${customers.firstName}) ilike ${like}`,
-          // Match local and international forms: "064 99" and "+381 64 99" both hit +3816499...
-          ...(digits.length >= 3
-            ? [sql`regexp_replace(${customers.phone}, '\\D', '', 'g') like ${`%${digits.replace(/^0/, '')}%`}`]
-            : []),
-        )!,
-      );
+    if (opts.search?.trim()) {
+      const groups = guestQueryTokens(opts.search);
+      if (!groups.length) return { total: 0, items: [] };
+      // Every word must match (AND); a word may match a name or an email token (OR).
+      for (const g of groups) conds.push(sql`${customers.searchTokens} && ${sql.param(g)}::text[]`);
     }
-    const where = and(...conds);
-    const sortCol = {
-      lastName: customers.lastName,
-      firstName: customers.firstName,
-      phone: customers.phone,
-      email: customers.email,
-      createdAt: customers.createdAt,
-      visits: visitsSql,
-    }[opts.sort ?? 'lastName'];
-    const order = opts.dir === 'desc' ? sql`${sortCol} desc nulls last` : sql`${sortCol} asc nulls last`;
-
-    const [rows, [{ total }]] = await Promise.all([
-      this.selectWithStats().where(where).orderBy(order, asc(customers.id)).limit(opts.limit).offset(opts.offset),
-      this.db.select({ total: sql<number>`count(*)::int` }).from(customers).where(where),
-    ]);
-    return { total, items: rows.map((r) => toDto({ ...r.c, ...r })) };
+    const rows = await this.db.select().from(customers).where(and(...conds));
+    const stats = await this.stats(rows.map((r) => r.id));
+    const sort = opts.sort ?? 'lastName';
+    const dir = opts.dir === 'desc' ? -1 : 1;
+    const key = (c: CustomerRow): string | number | null => {
+      switch (sort) {
+        case 'visits':
+          return stats.get(c.id)?.visits ?? 0;
+        case 'createdAt':
+          return c.createdAt.getTime();
+        default:
+          return c[sort];
+      }
+    };
+    rows.sort((a, b) => {
+      const x = key(a);
+      const y = key(b);
+      // Blanks last in either direction.
+      if (x === null || x === '') return y === null || y === '' ? 0 : 1;
+      if (y === null || y === '') return -1;
+      const cmp = typeof x === 'number' && typeof y === 'number' ? x - y : collator.compare(String(x), String(y));
+      return cmp * dir || a.id.localeCompare(b.id);
+    });
+    const page = rows.slice(opts.offset, opts.offset + opts.limit);
+    return { total: rows.length, items: page.map((c) => toDto(c, stats.get(c.id))) };
   }
 
   async get(restaurantId: string, id: string): Promise<CustomerDto> {
-    const [row] = await this.selectWithStats().where(and(eq(customers.id, id), eq(customers.guestBookId, await this.book(restaurantId))));
+    const [row] = await this.db
+      .select()
+      .from(customers)
+      .where(and(eq(customers.id, id), eq(customers.guestBookId, await this.book(restaurantId))));
     if (!row) throw new NotFoundException('Customer not found');
-    return toDto({ ...row.c, ...row });
+    return toDto(row, (await this.stats([row.id])).get(row.id));
   }
 
   async lookupByPhone(restaurantId: string, phone: string): Promise<CustomerDto | null> {
     const normalized = normalizePhone(phone);
     if (!normalized) return null;
-    const [row] = await this.selectWithStats().where(and(eq(customers.guestBookId, await this.book(restaurantId)), eq(customers.phone, normalized)));
-    return row ? toDto({ ...row.c, ...row }) : null;
+    const [row] = await this.db
+      .select()
+      .from(customers)
+      .where(and(eq(customers.guestBookId, await this.book(restaurantId)), eq(customers.phoneIndex, phoneIndex(normalized)!)));
+    return row ? toDto(row, (await this.stats([row.id])).get(row.id)) : null;
   }
 
   private values(input: CustomerInput) {
-    return {
+    const contact = {
       firstName: input.firstName,
       lastName: input.lastName,
       phone: normalizePhone(input.phone) ?? input.phone ?? null,
       email: input.email,
+    };
+    return {
+      ...contact,
+      ...customerIndexes(contact),
       language: input.language ?? null,
       birthday: input.birthday ?? null,
       company: input.company,

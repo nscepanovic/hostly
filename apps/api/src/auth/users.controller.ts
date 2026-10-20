@@ -1,5 +1,6 @@
 import { Body, Controller, Delete, Get, HttpCode, NotFoundException, Param, ParseUUIDPipe, Post, BadRequestException } from '@nestjs/common';
-import { and, asc, eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
+import { emailIndex } from '../common/crypto';
 import { userCreateSchema, type UserCreateInput, type UserDto } from '@hostly/shared';
 import { CurrentUser, Roles, type AuthUser } from '../common/decorators';
 import { ZodPipe } from '../common/zod.pipe';
@@ -15,8 +16,9 @@ export class UsersController {
 
   @Get()
   async list(@CurrentUser() me: AuthUser): Promise<UserDto[]> {
-    const rows = await this.db.select().from(users).where(eq(users.restaurantId, me.restaurantId)).orderBy(asc(users.name));
-    return rows.map(toUserDto);
+    const rows = await this.db.select().from(users).where(eq(users.restaurantId, me.restaurantId));
+    // Names are encrypted, so sorting happens after decryption.
+    return rows.map(toUserDto).sort((a, b) => a.name.localeCompare(b.name));
   }
 
   @Post()
@@ -27,6 +29,7 @@ export class UsersController {
         .values({
           restaurantId: me.restaurantId,
           email: body.email.toLowerCase(),
+          emailIndex: emailIndex(body.email)!,
           name: body.name,
           role: body.role,
           passwordHash: await AuthService.hash(body.password),

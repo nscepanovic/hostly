@@ -15,6 +15,8 @@ import { env } from '../config/env';
 import { createDb, type Db } from './client';
 import * as s from './schema';
 import { createRestaurant } from './tenant';
+import { emailIndex } from '../common/crypto';
+import { customerIndexes } from '../customers/customer-indexes';
 
 export const guestToken = () => randomBytes(24).toString('base64url');
 export const rangeLiteral = (from: Date, to: Date) => `[${from.toISOString()},${to.toISOString()})`;
@@ -95,8 +97,14 @@ export async function seed(db: Db, opts: { slug?: string; name?: string; passwor
     const hosts = await tx
       .insert(s.users)
       .values([
-        { restaurantId: rid, email: `host1@${slug}.local`, name: 'Host 1', role: 'host' as const, passwordHash: hash },
-        { restaurantId: rid, email: `host2@${slug}.local`, name: 'Host 2', role: 'host' as const, passwordHash: hash },
+        ...[1, 2].map((n) => ({
+          restaurantId: rid,
+          email: `host${n}@${slug}.local`,
+          emailIndex: emailIndex(`host${n}@${slug}.local`)!,
+          name: `Host ${n}`,
+          role: 'host' as const,
+          passwordHash: hash,
+        })),
       ])
       .returning();
     const userRows = [owner, ...hosts];
@@ -140,6 +148,7 @@ export async function seed(db: Db, opts: { slug?: string; name?: string; passwor
           type,
           tags: [],
           ...extra,
+          ...customerIndexes({ firstName, lastName, phone: normalizePhone(phone), email: extra?.email }),
         })),
       )
       .returning();

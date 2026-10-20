@@ -50,6 +50,12 @@ const envSchema = z.object({
     .enum(['true', 'false'])
     .default('true')
     .transform((v) => v === 'true'),
+  /** Field encryption keys "id:base64(32 bytes)", comma separated; keep old ones after rotating. */
+  DATA_ENCRYPTION_KEYS: z.string().default(''),
+  /** Key id used for new writes (default: the last key listed). */
+  DATA_ENCRYPTION_KEY_ID: z.string().default(''),
+  /** HMAC key for searchable blind indexes, base64(32 bytes). Never change it without re-indexing. */
+  BLIND_INDEX_KEY: z.string().default(''),
   PUBLIC_RATE_LIMIT_PER_MIN: z.coerce.number().int().default(20),
 });
 
