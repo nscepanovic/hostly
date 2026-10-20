@@ -9,8 +9,9 @@ services:
       POSTGRES_PASSWORD: hostly
       POSTGRES_DB: hostly
     ports:
-      # Override with HOSTLY_DB_PORT=5433 if 5432 is taken (and update DATABASE_URL).
-      - '${HOSTLY_DB_PORT:-5432}:5432'
+      # 5433 on the host so it can run next to other projects' Postgres on 5432.
+      # Override with HOSTLY_DB_PORT (and update DATABASE_URL to match).
+      - '127.0.0.1:${HOSTLY_DB_PORT:-5433}:5432'
     volumes:
       - hostly-db:/var/lib/postgresql/data
       - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro

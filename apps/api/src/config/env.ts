@@ -23,7 +23,7 @@ function loadEnvFile() {
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.coerce.number().int().default(3000),
-  DATABASE_URL: z.string().default('postgres://hostly:hostly@localhost:5432/hostly'),
+  DATABASE_URL: z.string().default('postgres://hostly:hostly@localhost:5433/hostly'),
   JWT_SECRET: z.string().min(16).default('dev-only-secret-change-me-please'),
   JWT_TTL_HOURS: z.coerce.number().int().min(1).default(24 * 14),
   /** Public base URL of the app, used in guest email links. */

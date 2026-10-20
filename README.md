@@ -36,7 +36,7 @@ Requirements: Node 20+, pnpm 10, Docker (Docker Desktop on macOS).
 pnpm install
 cp .env.example .env            # defaults match the Docker database
 
-# 2. Start Postgres 16 in Docker (user/password/db: hostly, plus hostly_test)
+# 2. Start Postgres 16 in Docker on localhost:5433 (user/password/db: hostly, plus hostly_test)
 pnpm db:up
 
 # 3. Schema and demo data
@@ -51,7 +51,7 @@ Other database commands:
 
 - `pnpm db:down` stops the container. Your data stays in the `hostly-db` volume.
 - `pnpm db:reset` wipes the volume, then migrates and seeds again.
-- If port 5432 is taken, run `HOSTLY_DB_PORT=5433 pnpm db:up` and change the port in `DATABASE_URL` to match.
+- The database listens on port 5433, so it doesn't clash with another Postgres on 5432. To use a different port, run `HOSTLY_DB_PORT=5434 pnpm db:up` and change `DATABASE_URL` to match.
 - If you already run your own PostgreSQL 14+, skip Docker. Create a `hostly` role, the `hostly` and `hostly_test` databases, and point `DATABASE_URL` at them.
 
 Open http://localhost:5173 and sign in with a seeded user (password `hostly123`, or `SEED_PASSWORD`):
