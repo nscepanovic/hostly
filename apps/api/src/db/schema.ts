@@ -198,6 +198,8 @@ export const reservations = pgTable(
     covers: integer('covers').notNull(),
     arrivalAt: timestamp('arrival_at', { withTimezone: true }).notNull(),
     departureAt: timestamp('departure_at', { withTimezone: true }).notNull(),
+    /** True when staff gave no end: departure is start + the party-size duration and follows changes. */
+    departureEstimated: boolean('departure_estimated').notNull().default(false),
     purpose: text('purpose').$type<Purpose>().notNull().default('food'),
     status: text('status').$type<ReservationStatus>().notNull(),
     source: text('source').$type<ReservationSource>().notNull(),

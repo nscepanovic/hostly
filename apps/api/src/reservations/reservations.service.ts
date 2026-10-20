@@ -5,6 +5,7 @@ import { DateTime } from 'luxon';
 import {
   ACTIVE_STATUSES,
   canTransition,
+  durationForCovers,
   type MessageTemplate,
   type MoveReservationInput,
   type ReservationDto,
@@ -29,6 +30,7 @@ import { WaitingService } from '../waiting/waiting.service';
 export const newGuestToken = () => randomBytes(24).toString('base64url');
 const rangeLiteral = (from: Date, to: Date) => `[${from.toISOString()},${to.toISOString()})`;
 const isActive = (s: ReservationStatus) => ACTIVE_STATUSES.includes(s);
+const MAX_DURATION_HOURS = 24;
 
 /** Who is acting: a staff user, or the public widget / guest link. */
 export type Actor = AuthUser | { id: null; restaurantId: string };
@@ -86,6 +88,7 @@ export class ReservationsService {
         covers: r.covers,
         arrivalAt: r.arrivalAt.toISOString(),
         departureAt: r.departureAt.toISOString(),
+        departureEstimated: r.departureEstimated,
         purpose: r.purpose,
         status: r.status,
         source: r.source,
@@ -162,19 +165,31 @@ export class ReservationsService {
 
   // ---------- writes ----------
 
-  private resolveWindow(restaurant: RestaurantRow, arrivalAt: string, departureAt?: string | null, fallbackMinutes?: number) {
+  /** How long a party usually stays: the duration rules by party size, else the restaurant default. */
+  defaultMinutes(restaurant: RestaurantRow, covers: number): number {
+    return durationForCovers(restaurant.onlineSettings.durations, covers, restaurant.defaultDurationMin);
+  }
+
+  /**
+   * Start and end of a reservation. The end is optional: without one it is
+   * estimated as start + `minutes` (default: the party-size duration).
+   */
+  private resolveWindow(restaurant: RestaurantRow, arrivalAt: string, departureAt: string | null | undefined, covers: number, minutes?: number) {
     let arrival: DateTime;
     let departure: DateTime;
     try {
       arrival = parseDateTime(arrivalAt, restaurant.timezone);
       departure = departureAt
         ? parseDateTime(departureAt, restaurant.timezone)
-        : arrival.plus({ minutes: fallbackMinutes ?? restaurant.defaultDurationMin });
+        : arrival.plus({ minutes: minutes ?? this.defaultMinutes(restaurant, covers) });
     } catch (err) {
       throw new BadRequestException((err as Error).message);
     }
-    if (departure <= arrival) throw new BadRequestException('Return time must be after arrival');
-    return { arrival, departure };
+    if (departure <= arrival) throw new BadRequestException('End must be after start');
+    if (departure.diff(arrival, 'hours').hours > MAX_DURATION_HOURS) {
+      throw new BadRequestException(`A reservation can last at most ${MAX_DURATION_HOURS} hours`);
+    }
+    return { arrival, departure, estimated: !departureAt };
   }
 
   private async assertAreaOwned(tx: DbOrTx, restaurantId: string, areaId: string | null | undefined) {
@@ -247,7 +262,7 @@ export class ReservationsService {
 
   async validateInput(restaurantId: string, input: ReservationParsed, excludeReservationId?: string): Promise<ValidationIssue[]> {
     const restaurant = await this.restaurants.get(restaurantId);
-    const { arrival, departure } = this.resolveWindow(restaurant, input.arrivalAt, input.departureAt);
+    const { arrival, departure } = this.resolveWindow(restaurant, input.arrivalAt, input.departureAt, input.covers);
     return this.availability.validate(restaurant, {
       arrival,
       departure,
@@ -260,7 +275,7 @@ export class ReservationsService {
 
   async create(actor: Actor, input: ReservationParsed, opts: CreateOptions = {}): Promise<ReservationDto> {
     const restaurant = await this.restaurants.get(actor.restaurantId);
-    const { arrival, departure } = this.resolveWindow(restaurant, input.arrivalAt, input.departureAt);
+    const { arrival, departure, estimated } = this.resolveWindow(restaurant, input.arrivalAt, input.departureAt, input.covers);
     const now = new Date();
 
     const dto = await this.inTx(async (tx) => {
@@ -286,6 +301,7 @@ export class ReservationsService {
           covers: input.covers,
           arrivalAt: arrival.toJSDate(),
           departureAt: departure.toJSDate(),
+          departureEstimated: estimated,
           purpose: input.purpose,
           status: input.status,
           source: input.source,
@@ -327,20 +343,27 @@ export class ReservationsService {
         throw new BadRequestException(`Cannot change status from ${row.status} to ${patch.status}`);
       }
 
-      const timeChanged = patch.arrivalAt !== undefined || patch.departureAt !== undefined;
+      const covers = patch.covers ?? row.covers;
       let arrival: DateTime<boolean> = DateTime.fromJSDate(row.arrivalAt);
       let departure: DateTime<boolean> = DateTime.fromJSDate(row.departureAt);
+      let estimated = row.departureEstimated;
+      // End handling: an explicit end is kept; `departureAt: null` switches back to an estimated end;
+      // an estimated end follows start and party-size changes; an explicit end keeps its duration when the start moves.
+      const endCleared = patch.departureAt === null;
+      const recomputeEstimate = (estimated || endCleared) && !patch.departureAt && (patch.arrivalAt !== undefined || patch.covers !== undefined || endCleared);
+      const timeChanged = patch.arrivalAt !== undefined || !!patch.departureAt || recomputeEstimate;
       if (timeChanged) {
-        const keepDuration = patch.departureAt === undefined ? departure.diff(arrival, 'minutes').minutes : undefined;
-        ({ arrival, departure } = this.resolveWindow(
-          restaurant,
-          patch.arrivalAt ?? row.arrivalAt.toISOString(),
-          patch.departureAt ?? (keepDuration === undefined ? row.departureAt.toISOString() : null),
-          keepDuration,
-        ));
+        const start = patch.arrivalAt ?? row.arrivalAt.toISOString();
+        if (patch.departureAt) {
+          ({ arrival, departure, estimated } = this.resolveWindow(restaurant, start, patch.departureAt, covers));
+        } else if (recomputeEstimate) {
+          ({ arrival, departure, estimated } = this.resolveWindow(restaurant, start, null, covers));
+        } else {
+          const keep = departure.diff(arrival, 'minutes').minutes;
+          ({ arrival, departure } = this.resolveWindow(restaurant, start, null, covers, keep));
+        }
       }
       const tableIds = patch.tableIds ?? before.tableIds;
-      const covers = patch.covers ?? row.covers;
       const status = patch.status ?? row.status;
 
       if (patch.tableIds) await this.assertTablesOwned(tx, restaurant.id, patch.tableIds);
@@ -380,6 +403,7 @@ export class ReservationsService {
           covers,
           arrivalAt: arrival.toJSDate(),
           departureAt: departure.toJSDate(),
+          departureEstimated: estimated,
           purpose: patch.purpose ?? row.purpose,
           status,
           source: patch.source ?? row.source,

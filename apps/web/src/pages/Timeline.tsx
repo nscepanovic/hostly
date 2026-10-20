@@ -126,11 +126,11 @@ export default function TimelinePage() {
     const fromIdx = rows.findIndex((tb) => tb.id === d.fromTableId);
     const target = rows[Math.min(rows.length - 1, Math.max(0, fromIdx + rowShift))];
     const tableIds = d.r.tableIds.map((id) => (id === d.fromTableId ? target.id : id));
+    // Only the start moves: the server keeps the duration (and an estimated end stays estimated).
     move.mutate({
       id: d.r.id,
       tableIds: [...new Set(tableIds)],
-      arrivalAt: arrival.plus({ minutes: steps * slotMin }).toISO()!,
-      departureAt: departure.plus({ minutes: steps * slotMin }).toISO()!,
+      arrivalAt: steps ? arrival.plus({ minutes: steps * slotMin }).toISO()! : undefined,
     });
   };
 
@@ -196,13 +196,21 @@ export default function TimelinePage() {
                         className={`absolute flex touch-none items-center overflow-hidden rounded-lg px-2 text-white shadow ${BAR_COLOR[r.status] ?? 'bg-st-reserved'} ${
                           active ? 'z-30 opacity-90 ring-2 ring-accent' : 'z-0'
                         } ${r.status === 'completed' ? 'opacity-60' : ''} cursor-grab`}
-                        style={{ left, width: w, top, height: ROW - 10 }}
+                        style={{
+                          left,
+                          width: w,
+                          top,
+                          height: ROW - 10,
+                          // Estimated end: fade out the last stretch instead of a hard edge.
+                          ...(r.departureEstimated ? { maskImage: 'linear-gradient(to right, #000 calc(100% - 28px), rgba(0,0,0,0.45))' } : {}),
+                        }}
                         data-row={rowIdx}
                       >
                         <div className="min-w-0 flex-1 leading-tight">
                           <div className="truncate text-sm font-semibold">{guestName(r)}</div>
                           <div className="truncate text-[11px] opacity-90">
-                            {r.covers} · {DateTime.fromISO(r.arrivalAt).setZone(tz).toFormat('HH:mm')}–{DateTime.fromISO(r.departureAt).setZone(tz).toFormat('HH:mm')}
+                            {r.covers} · {DateTime.fromISO(r.arrivalAt).setZone(tz).toFormat('HH:mm')}{r.departureEstimated ? ' – ~' : '–'}
+                            {DateTime.fromISO(r.departureAt).setZone(tz).toFormat('HH:mm')}
                           </div>
                         </div>
                         {r.status !== 'completed' && (

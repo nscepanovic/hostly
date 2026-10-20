@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { DateTime } from 'luxon';
 import { Check, UserRound, X, AlertTriangle, Mail } from 'lucide-react';
 import {
+  durationForCovers,
   formatPhone,
   LANGUAGES,
   PURPOSES,
@@ -30,9 +31,10 @@ import { TagInput } from './TagInput';
 import { TimeGrid } from './TimeGrid';
 import { CoversPad } from './CoversPad';
 import { TablePicker } from './TablePicker';
+import { DurationPicker, DURATION_CHIPS } from './DurationPicker';
 import { useCustomerLookup } from './useCustomerLookup';
 
-interface FormState {
+export interface FormState {
   status: ReservationDto['status'];
   purpose: ReservationDto['purpose'];
   date: string;
@@ -45,7 +47,11 @@ interface FormState {
   areaId: string;
   tableIds: string[];
   source: ReservationDto['source'];
-  returnTime: string;
+  /** auto = no end given (estimated from party size), duration = start + minutes, custom = explicit end. */
+  endMode: 'auto' | 'duration' | 'custom';
+  durationMin: number;
+  endDate: string;
+  endTime: string;
   fixMenu: boolean;
   notes: string;
   tags: string[];
@@ -73,7 +79,10 @@ function emptyForm(date: string, draft: ReservationDraft): FormState {
     areaId: '',
     tableIds: draft.tableIds ?? [],
     source: draft.source ?? 'phone',
-    returnTime: '',
+    endMode: draft.endAt ? 'custom' : 'auto',
+    durationMin: 120,
+    endDate: draft.endAt?.slice(0, 10) ?? '',
+    endTime: draft.endAt?.slice(11, 16) ?? '',
     fixMenu: false,
     notes: '',
     tags: [],
@@ -91,6 +100,8 @@ function emptyForm(date: string, draft: ReservationDraft): FormState {
 function fromReservation(r: ReservationDto, tz: string, businessDate: string): FormState {
   const a = inZone(r.arrivalAt, tz);
   const d = inZone(r.departureAt, tz);
+  const minutes = Math.round(d.diff(a, 'minutes').minutes);
+  const endMode: FormState['endMode'] = r.departureEstimated ? 'auto' : DURATION_CHIPS.includes(minutes) ? 'duration' : 'custom';
   return {
     status: r.status,
     purpose: r.purpose,
@@ -104,7 +115,10 @@ function fromReservation(r: ReservationDto, tz: string, businessDate: string): F
     areaId: r.areaId ?? '',
     tableIds: r.tableIds,
     source: r.source,
-    returnTime: d.toFormat('HH:mm'),
+    endMode,
+    durationMin: minutes,
+    endDate: d.toISODate()!,
+    endTime: d.toFormat('HH:mm'),
     fixMenu: r.fixMenu,
     notes: r.notes ?? '',
     tags: r.tags,
@@ -188,13 +202,15 @@ function ReservationForm({ id, draft, onClose }: { id?: string; draft: Reservati
   const linkedCustomer = customer ?? customerQuery.data ?? null;
 
   const arrivalLocal = form && restaurant && form.time ? businessLocal(restaurant, form.date, form.time) : null;
+  const estimateMin = restaurant && form ? durationForCovers(restaurant.onlineSettings.durations, form.covers ?? 2, restaurant.defaultDurationMin) : 0;
   const departureLocal = useMemo(() => {
     if (!form || !restaurant || !arrivalLocal) return null;
-    if (!form.returnTime) return DateTime.fromISO(arrivalLocal).plus({ minutes: restaurant.defaultDurationMin }).toFormat("yyyy-LL-dd'T'HH:mm");
-    const ret = businessLocal(restaurant, form.date, form.returnTime);
-    // A return time "before" arrival means after midnight.
-    return ret <= arrivalLocal ? DateTime.fromISO(ret).plus({ days: 1 }).toFormat("yyyy-LL-dd'T'HH:mm") : ret;
-  }, [form, restaurant, arrivalLocal]);
+    const start = DateTime.fromISO(arrivalLocal);
+    if (form.endMode === 'custom' && form.endDate && form.endTime) return `${form.endDate}T${form.endTime}`;
+    const minutes = form.endMode === 'duration' ? form.durationMin : estimateMin;
+    return start.plus({ minutes }).toFormat("yyyy-LL-dd'T'HH:mm");
+  }, [form, restaurant, arrivalLocal, estimateMin]);
+  const endBeforeStart = !!arrivalLocal && !!departureLocal && departureLocal <= arrivalLocal;
 
   // Auto table suggestion once covers and time are known.
   const suggestions = useQuery({
@@ -226,7 +242,8 @@ function ReservationForm({ id, draft, onClose }: { id?: string; draft: Reservati
     status: form!.status,
     purpose: form!.purpose,
     arrivalAt: arrivalLocal!,
-    departureAt: departureLocal,
+    // No end chosen: the server estimates it from the party size and keeps it in step with changes.
+    departureAt: form!.endMode === 'auto' ? null : departureLocal,
     covers: form!.covers!,
     firstName: form!.firstName || null,
     lastName: form!.lastName || null,
@@ -274,17 +291,7 @@ function ReservationForm({ id, draft, onClose }: { id?: string; draft: Reservati
     );
   }
 
-  // 24h return-time choices from one slot after arrival up to 8 hours.
-  const returnOptions = arrivalLocal
-    ? Array.from({ length: Math.floor(480 / restaurant.slotMinutes) }, (_, i) => {
-        const at = DateTime.fromISO(arrivalLocal).plus({ minutes: (i + 1) * restaurant.slotMinutes });
-        const mins = (i + 1) * restaurant.slotMinutes;
-        return { value: at.toFormat('HH:mm'), label: `${at.toFormat('HH:mm')}  (${Math.floor(mins / 60)}h${mins % 60 ? ` ${mins % 60}m` : ''})` };
-      })
-    : [];
-  const currentReturn = departureLocal?.slice(11, 16);
-  if (currentReturn && !returnOptions.some((o) => o.value === currentReturn)) returnOptions.unshift({ value: currentReturn, label: currentReturn });
-  const canSave = !!form.time && !!form.covers && !save.isPending;
+  const canSave = !!form.time && !!form.covers && !endBeforeStart && !save.isPending;
   const labelOf = new Map(tables.map((tb) => [tb.id, tb.label]));
   const chosenSeats = tables.filter((tb) => form.tableIds.includes(tb.id)).reduce((n, tb) => n + tb.maxSeats, 0);
   const hasHardIssue = issues.some((i) => i.hard);
@@ -378,6 +385,16 @@ function ReservationForm({ id, draft, onClose }: { id?: string; draft: Reservati
           <CoversPad value={form.covers} onChange={(v) => set('covers', v)} max={restaurant.maxPartySize} autoOpen={!form.covers && !!form.time && !timeOpen} />
         </Field>
       </div>
+
+      <DurationPicker
+        form={form}
+        set={set}
+        startLocal={arrivalLocal}
+        endLocal={departureLocal}
+        estimateMin={estimateMin}
+        invalid={endBeforeStart}
+        slotMinutes={restaurant.slotMinutes}
+      />
 
       {timeOpen && (
         <TimeGrid
@@ -488,26 +505,12 @@ function ReservationForm({ id, draft, onClose }: { id?: string; draft: Reservati
       )}
 
       {/* Row 3 */}
-      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
         <Field label={t('reservation.source')}>
           <select className="field" value={form.source} onChange={(e) => set('source', e.target.value as FormState['source'])}>
             {RESERVATION_SOURCES.map((s) => (
               <option key={s} value={s}>
                 {t(`source.${s}`)}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field label={t('reservation.returnTime')}>
-          <select
-            className="field tabular-nums"
-            value={departureLocal ? departureLocal.slice(11, 16) : ''}
-            disabled={!arrivalLocal}
-            onChange={(e) => set('returnTime', e.target.value)}
-          >
-            {returnOptions.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
               </option>
             ))}
           </select>

@@ -36,6 +36,13 @@
       "when": 1792516693691,
       "tag": "0004_admin",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792519922113,
+      "tag": "0005_departure_estimated",
+      "breakpoints": true
     }
   ]
 }

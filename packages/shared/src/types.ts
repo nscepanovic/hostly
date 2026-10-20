@@ -105,6 +105,8 @@ export interface ReservationDto {
   covers: number;
   arrivalAt: string;
   departureAt: string;
+  /** No end was given: departureAt is estimated from the party-size duration. */
+  departureEstimated: boolean;
   purpose: Purpose;
   status: ReservationStatus;
   source: ReservationSource;

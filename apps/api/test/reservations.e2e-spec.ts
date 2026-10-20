@@ -124,6 +124,48 @@ describe('reservations (e2e)', () => {
     });
   });
 
+  describe('duration and optional end', () => {
+    const minutes = (r: ReservationDto) => DateTime.fromISO(r.departureAt).diff(DateTime.fromISO(r.arrivalAt), 'minutes').minutes;
+
+    it('estimates the end from the party size when none is given, and keeps following it', async () => {
+      const r: ReservationDto = (await host.post('/api/reservations', { arrivalAt: at('12:30'), covers: 2, lastName: 'Auto' }).expect(201)).body;
+      expect(r.departureEstimated).toBe(true);
+      expect(minutes(r)).toBe(90); // party of 2
+      const bigger: ReservationDto = (await host.patch(`/api/reservations/${r.id}`, { covers: 6 }).expect(200)).body;
+      expect(bigger.departureEstimated).toBe(true);
+      expect(minutes(bigger)).toBe(150); // party of 5+
+      const moved: ReservationDto = (await host.patch(`/api/reservations/${r.id}`, { arrivalAt: at('13:00') }).expect(200)).body;
+      expect(DateTime.fromISO(moved.departureAt).setZone(TZ).toFormat('HH:mm')).toBe('15:30');
+    });
+
+    it('keeps an explicit end, also across midnight, and can go back to estimated', async () => {
+      const next = DateTime.fromISO(day).plus({ days: 1 }).toISODate();
+      const r: ReservationDto = (
+        await host.post('/api/reservations', { arrivalAt: at('23:00'), departureAt: `${next}T01:30`, covers: 2, lastName: 'Late', force: true }).expect(201)
+      ).body;
+      expect(r.departureEstimated).toBe(false);
+      expect(minutes(r)).toBe(150);
+      expect(minutes((await host.patch(`/api/reservations/${r.id}`, { covers: 4 }).expect(200)).body)).toBe(150);
+      const auto: ReservationDto = (await host.patch(`/api/reservations/${r.id}`, { departureAt: null }).expect(200)).body;
+      expect(auto.departureEstimated).toBe(true);
+      expect(minutes(auto)).toBe(120); // party of 4
+    });
+
+    it('rejects an end before the start or more than 24 hours later', async () => {
+      await host.post('/api/reservations', { arrivalAt: at('19:00'), departureAt: at('18:00'), covers: 2, lastName: 'X' }).expect(400);
+      const later = DateTime.fromISO(day).plus({ days: 2 }).toISODate();
+      await host.post('/api/reservations', { arrivalAt: at('19:00'), departureAt: `${later}T19:00`, covers: 2, lastName: 'X', force: true }).expect(400);
+    });
+
+    it('lets one table hold several reservations in a day', async () => {
+      const t = table('br 1');
+      for (const [start, end] of [['09:00', '10:30'], ['11:00', '12:30'], ['17:00', '19:00'], ['19:00', '21:00']]) {
+        await host.post('/api/reservations', { arrivalAt: at(start), departureAt: at(end), covers: 2, lastName: `Slot ${start}`, tableIds: [t.id], force: true }).expect(201);
+      }
+      await host.post('/api/reservations', { arrivalAt: at('18:30'), covers: 2, lastName: 'Clash', tableIds: [t.id], force: true }).expect(409);
+    });
+  });
+
   describe('status flow', () => {
     it('seats, completes and blocks invalid transitions', async () => {
       const r = (await host.post('/api/reservations', { arrivalAt: at('11:00'), covers: 2, lastName: 'Flow', tableIds: [table('br 4').id] }).expect(201)).body;

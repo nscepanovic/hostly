@@ -37,7 +37,11 @@ export function FloorCanvas({
 }) {
   const { t } = useTranslation();
   const [containerRef, size] = useElementSize<HTMLDivElement>();
-  const bounds = useMemo(() => tablesBounds(tables, 50), [tables]);
+  // Extra room at the bottom for the "coming next" chips under the lowest tables.
+  const bounds = useMemo(() => {
+    const b = tablesBounds(tables, 50);
+    return { ...b, h: b.h + CHIP_ROOM };
+  }, [tables]);
   const byId = useMemo(() => new Map(tables.map((tb) => [tb.id, tb])), [tables]);
 
   // Lines between tables of the same reservation (joined tables).
@@ -145,9 +149,14 @@ export function FloorCanvas({
                   <text x={tb.w / 2} y={-22} textAnchor="middle" fontSize={13} fontWeight={600} fill="var(--color-muted)">
                     {tb.minSeats}-{tb.maxSeats}
                   </text>
+                  {!r && st?.freeUntil && (
+                    <text x={tb.w / 2} y={tb.h / 2 + (small ? 12 : 16)} textAnchor="middle" fontSize={small ? 11 : 12} fill="var(--color-muted)">
+                      {t('floor.until', { time: fmtTime(st.freeUntil, timezone) })}
+                    </text>
+                  )}
                   <text
                     x={tb.w / 2}
-                    y={r ? tb.h / 2 - (small ? 8 : 14) : tb.h / 2 + 6}
+                    y={r ? tb.h / 2 - (small ? 8 : 14) : st?.freeUntil ? tb.h / 2 - (small ? 2 : 4) : tb.h / 2 + 6}
                     textAnchor="middle"
                     fontSize={small ? 15 : 18}
                     fontWeight={700}
@@ -165,14 +174,7 @@ export function FloorCanvas({
                       </text>
                     </>
                   )}
-                  {st && st.upcoming.length > 0 && (
-                    <g transform={`translate(${tb.w - 6} -6)`}>
-                      <circle r={11} fill="var(--color-surface)" stroke="var(--color-st-reserved)" strokeWidth={2} />
-                      <text textAnchor="middle" y={4.5} fontSize={12} fontWeight={700} fill="var(--color-text)">
-                        +{st.upcoming.length}
-                      </text>
-                    </g>
-                  )}
+                  {st && st.upcoming.length > 0 && <ComingUp items={st.upcoming} tableW={tb.w} tableH={tb.h} timezone={timezone} />}
                 </TableShape>
               </g>
             );
@@ -180,6 +182,36 @@ export function FloorCanvas({
         </svg>
       </div>
     </div>
+  );
+}
+
+const CHIP_ROOM = 64;
+const CHIP_W = 70;
+const CHIP_H = 17;
+const MAX_CHIPS = 3;
+const CHIP_STROKE: Partial<Record<ReservationDto['status'], string>> = {
+  pending: 'var(--color-st-pending)',
+  confirmed: 'var(--color-st-reserved)',
+};
+
+/** The next 2-3 bookings of a table, as small time chips under it ("19:00 · 4"). */
+function ComingUp({ items, tableW, tableH, timezone }: { items: ReservationDto[]; tableW: number; tableH: number; timezone: string }) {
+  const shown = items.slice(0, MAX_CHIPS);
+  const more = items.length - shown.length;
+  // Below the chairs (14px chair + 4px gap).
+  const top = tableH + 24;
+  return (
+    <g pointerEvents="none">
+      {shown.map((r, i) => (
+        <g key={r.id} transform={`translate(${tableW / 2 - CHIP_W / 2} ${top + i * (CHIP_H + 3)})`}>
+          <rect width={CHIP_W} height={CHIP_H} rx={CHIP_H / 2} fill="var(--color-surface)" stroke={CHIP_STROKE[r.status] ?? 'var(--color-border)'} strokeWidth={1.5} />
+          <text x={CHIP_W / 2} y={12.5} textAnchor="middle" fontSize={11} fontWeight={600} fill="var(--color-text)">
+            {fmtTime(r.arrivalAt, timezone)} · {r.covers}
+            {more > 0 && i === shown.length - 1 ? `  +${more}` : ''}
+          </text>
+        </g>
+      ))}
+    </g>
   );
 }
 

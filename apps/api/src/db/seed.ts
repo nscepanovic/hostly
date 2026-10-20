@@ -164,7 +164,7 @@ export async function seed(db: Db, opts: { slug?: string; name?: string; passwor
     const statusFor = (arrival: DateTime, departure: DateTime): ReservationStatus =>
       departure < now ? 'completed' : arrival <= now ? 'seated' : 'confirmed';
 
-    type Sample = { cust?: string; name?: [string, string]; time: string; mins: number; covers: number; tables: string[]; source: ReservationSource; status?: ReservationStatus; notes?: string; tags?: string[]; dietary?: string[] };
+    type Sample = { estimated?: boolean; cust?: string; name?: [string, string]; time: string; mins: number; covers: number; tables: string[]; source: ReservationSource; status?: ReservationStatus; notes?: string; tags?: string[]; dietary?: string[] };
     const samples: Sample[] = [
       { cust: 'Sanja', time: '09:30', mins: 90, covers: 2, tables: ['br 4'], source: 'phone', tags: ['window seat'] },
       { cust: 'Jelena', time: '12:00', mins: 120, covers: 5, tables: ['br 5'], source: 'phone', notes: 'Company lunch', tags: ['business'] },
@@ -176,6 +176,12 @@ export async function seed(db: Db, opts: { slug?: string; name?: string; passwor
       { cust: 'Emma', time: '20:00', mins: 120, covers: 4, tables: [], source: 'online', status: 'pending', notes: 'Is there a kids menu?' },
       { cust: 'Tamara', time: '20:30', mins: 120, covers: 2, tables: ['br 7'], source: 'phone', status: 'cancelled' },
       { name: ['Walk', 'In'], time: '10:15', mins: 60, covers: 2, tables: ['br 6'], source: 'walk_in' },
+      // Several bookings on one table in a day (shown as "coming next" chips on the floor plan).
+      { cust: 'Ana', time: '20:30', mins: 90, covers: 2, tables: ['br 3'], source: 'phone', estimated: true },
+      { cust: 'Stefan', time: '22:15', mins: 90, covers: 3, tables: ['br 3'], source: 'phone', estimated: true },
+      { cust: 'Marko', time: '20:15', mins: 120, covers: 2, tables: ['br 1'], source: 'phone' },
+      { cust: 'Vladimir', time: '22:30', mins: 90, covers: 2, tables: ['br 1'], source: 'staff', estimated: true },
+      { cust: 'Kalo', time: '21:45', mins: 150, covers: 6, tables: ['br 8'], source: 'phone', estimated: true },
     ];
 
     for (const sm of samples) {
@@ -195,6 +201,7 @@ export async function seed(db: Db, opts: { slug?: string; name?: string; passwor
           covers: sm.covers,
           arrivalAt: arrival.toJSDate(),
           departureAt: departure.toJSDate(),
+          departureEstimated: sm.estimated ?? false,
           purpose: 'food',
           status,
           source: sm.source,

@@ -72,7 +72,8 @@ export class PublicController {
         status: 'pending',
         purpose: 'food',
         arrivalAt: check.arrival!.toISO()!,
-        departureAt: check.departure!.toISO()!,
+        // No end from the guest: estimated from the party-size duration (same rule the slot check used).
+        departureAt: null,
         covers: body.covers,
         firstName: body.firstName,
         lastName: body.lastName,

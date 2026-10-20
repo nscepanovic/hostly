@@ -138,7 +138,10 @@ export default function ReservationsPage() {
                             <td className="px-2 text-right font-bold tabular-nums">{r.covers}</td>
                             <td className={`px-2 whitespace-nowrap ${labels(r) ? '' : 'font-semibold text-warn'}`}>{labels(r) || t('topbar.withoutTable')}</td>
                             <td className="px-2 tabular-nums">{fmtTime(r.arrivalAt, tz)}</td>
-                            <td className="px-2 text-muted tabular-nums">{fmtTime(r.departureAt, tz)}</td>
+                            <td className="px-2 text-muted tabular-nums" title={r.departureEstimated ? t('reservation.endAutoHint') : undefined}>
+                              {r.departureEstimated ? '~' : ''}
+                              {fmtTime(r.departureAt, tz)}
+                            </td>
                             <td className="px-2 text-muted" title={t(`source.${r.source}`)}>
                               {SOURCE_ICON[r.source]}
                             </td>

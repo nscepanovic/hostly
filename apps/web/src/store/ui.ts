@@ -6,6 +6,8 @@ export type Theme = 'dark' | 'light';
 
 export interface ReservationDraft {
   arrivalTime?: string;
+  /** Explicit end, local "YYYY-MM-DDTHH:mm" (e.g. a walk-in that must leave before the next booking). */
+  endAt?: string;
   covers?: number;
   tableIds?: string[];
   source?: 'phone' | 'walk_in' | 'staff';

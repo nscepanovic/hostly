@@ -1,0 +1,1 @@
+ALTER TABLE "reservations" ADD COLUMN "departure_estimated" boolean DEFAULT false NOT NULL;

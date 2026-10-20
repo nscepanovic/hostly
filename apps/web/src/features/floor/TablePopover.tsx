@@ -27,6 +27,17 @@ function Action({ icon, label, onClick, tone = 'default' }: { icon: ReactNode; l
   );
 }
 
+/**
+ * End for a walk-in on a table booked later: 15 minutes before that booking when it is
+ * within a normal stay (3 hours); otherwise no end, so the usual estimate applies.
+ */
+function walkInEnd(status: TableStatus | undefined, timezone: string): string | undefined {
+  if (!status?.freeUntil) return undefined;
+  const end = DateTime.fromISO(status.freeUntil).setZone(timezone).minus({ minutes: 15 });
+  const minutes = end.diffNow('minutes').minutes;
+  return minutes > 30 && minutes < 180 ? end.toFormat("yyyy-LL-dd'T'HH:mm") : undefined;
+}
+
 export function TablePopover({
   table,
   status,
@@ -62,7 +73,8 @@ export function TablePopover({
             <span className="ml-auto rounded-md bg-surface-3 px-2 py-0.5 text-sm">{t(`status.${r.status}`)}</span>
           </div>
           <div className="mt-1 text-muted tabular-nums">
-            {fmtTime(r.arrivalAt, timezone)}–{fmtTime(r.departureAt, timezone)} · {r.covers} {t('common.covers').toLowerCase()}
+            {fmtTime(r.arrivalAt, timezone)}{r.departureEstimated ? ' – ~' : '–'}
+            {fmtTime(r.departureAt, timezone)} · {r.covers} {t('common.covers').toLowerCase()}
             {r.phone && ` · ${formatPhone(r.phone)}`}
           </div>
           {(r.notes || r.tags.length > 0 || r.dietary.length > 0) && (
@@ -77,7 +89,9 @@ export function TablePopover({
           )}
         </div>
       ) : (
-        <p className="mb-4 text-muted">{t('floor.tableFree')}</p>
+        <p className="mb-4 text-muted">
+          {status?.freeUntil ? t('floor.freeUntil', { time: fmtTime(status.freeUntil, timezone) }) : t('floor.tableFree')}
+        </p>
       )}
 
       <div className="grid grid-cols-3 gap-2">
@@ -132,6 +146,8 @@ export function TablePopover({
                   source: 'walk_in',
                   covers: table.minSeats,
                   arrivalTime: DateTime.now().setZone(timezone).toFormat('HH:mm'),
+                  // Walk-ins on a table booked later must leave before that booking.
+                  endAt: walkInEnd(status, timezone),
                 });
                 onClose();
               }}
@@ -150,7 +166,7 @@ export function TablePopover({
 
       {status && status.upcoming.length > 0 && (
         <div className="mt-4">
-          <div className="label">{t('floor.nextUp', { time: '' }).replace(':', '').trim()}</div>
+          <div className="label">{t('floor.comingUp')}</div>
           <div className="flex flex-col gap-1">
             {status.upcoming.map((u) => (
               <button
@@ -162,7 +178,10 @@ export function TablePopover({
                 }}
                 className="flex h-11 items-center gap-3 rounded-lg bg-surface-2 px-3 text-left"
               >
-                <b className="tabular-nums">{fmtTime(u.arrivalAt, timezone)}</b>
+                <b className="tabular-nums">
+                  {fmtTime(u.arrivalAt, timezone)}{u.departureEstimated ? ' – ~' : '–'}
+                  {fmtTime(u.departureAt, timezone)}
+                </b>
                 <span className="flex-1 truncate">{guestName(u)}</span>
                 <span className="text-muted">{u.covers}</span>
               </button>

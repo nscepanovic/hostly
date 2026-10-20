@@ -12,6 +12,7 @@ const base: ReservationDto = {
   covers: 2,
   arrivalAt: '2026-10-20T18:00:00.000Z',
   departureAt: '2026-10-20T20:00:00.000Z',
+  departureEstimated: false,
   purpose: 'food',
   status: 'confirmed',
   source: 'phone',
@@ -39,6 +40,26 @@ describe('computeTableStatuses', () => {
     const s = computeTableStatuses([r({ id: 'a' })], new Date('2026-10-20T17:00:00Z')).get('t1')!;
     expect(s.state).toBe('reserved');
     expect(s.reservation?.id).toBe('a');
+  });
+
+  it('shows a table as free until a booking that is more than an hour away', () => {
+    const s = computeTableStatuses([r({ id: 'a' })], new Date('2026-10-20T15:00:00Z')).get('t1')!;
+    expect(s.state).toBe('free');
+    expect(s.reservation).toBeNull();
+    expect(s.freeUntil).toBe('2026-10-20T18:00:00.000Z');
+    expect(s.upcoming.map((x) => x.id)).toEqual(['a']);
+  });
+
+  it('lists every later booking of the day as coming up', () => {
+    const day = [
+      r({ id: 'b', arrivalAt: '2026-10-20T20:00:00.000Z', departureAt: '2026-10-20T21:30:00.000Z' }),
+      r({ id: 'a' }),
+      r({ id: 'c', arrivalAt: '2026-10-20T22:00:00.000Z', departureAt: '2026-10-20T23:30:00.000Z' }),
+    ];
+    const s = computeTableStatuses(day, new Date('2026-10-20T17:30:00Z')).get('t1')!;
+    expect(s.state).toBe('reserved');
+    expect(s.reservation?.id).toBe('a');
+    expect(s.upcoming.map((x) => x.id)).toEqual(['b', 'c']);
   });
 
   it('flags a confirmed booking that is late', () => {
