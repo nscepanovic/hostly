@@ -20,9 +20,11 @@ void i18n.use(initReactI18next).init({
   interpolation: { escapeValue: false },
 });
 
-export function setLanguage(lang: 'sr' | 'en') {
+/** `persist: false` for guest-facing pages so a staff device keeps its own language. */
+export function setLanguage(lang: 'sr' | 'en', persist = true) {
   void i18n.changeLanguage(lang);
   document.documentElement.lang = lang;
+  if (!persist) return;
   try {
     localStorage.setItem(LANG_KEY, lang);
   } catch {

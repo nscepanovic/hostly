@@ -57,8 +57,14 @@ export function SuggestionSheet({
   onPick,
   onClose,
   noneLabel,
+  excludeReservationId,
+  current,
 }: {
   open: boolean;
+  /** The reservation being placed, so its own held tables count as free. */
+  excludeReservationId?: string;
+  /** Tables already held (e.g. auto-assigned online request), offered first. */
+  current?: { tableIds: string[]; labels: string[] };
   title: string;
   covers: number;
   arrivalAt: string;
@@ -70,13 +76,24 @@ export function SuggestionSheet({
 }) {
   const { t } = useTranslation();
   const { data, isLoading } = useQuery({
-    queryKey: ['suggest', arrivalAt, departureAt, covers, customerId],
+    queryKey: ['suggest', arrivalAt, departureAt, covers, customerId, excludeReservationId],
     queryFn: () =>
-      api.get<TableSuggestion[]>('/reservations/suggest', { arrivalAt, departureAt, covers, customerId: customerId ?? undefined }),
+      api.get<TableSuggestion[]>('/reservations/suggest', {
+        arrivalAt,
+        departureAt,
+        covers,
+        customerId: customerId ?? undefined,
+        excludeReservationId,
+      }),
     enabled: open,
   });
   return (
     <Modal open={open} onClose={onClose} title={title} size="sm">
+      {current && current.tableIds.length > 0 && (
+        <Button variant="primary" className="mb-4 w-full" onClick={() => onPick(current.tableIds)}>
+          {current.labels.join(' + ')}
+        </Button>
+      )}
       <div className="mb-2 label">{t('reservation.suggestions')}</div>
       {isLoading ? <p className="text-muted">{t('common.loading')}</p> : <SuggestionList suggestions={data ?? []} onPick={(s) => onPick(s.tableIds)} />}
       {noneLabel && (

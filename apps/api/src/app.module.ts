@@ -15,6 +15,7 @@ import { TagsModule } from './tags/tags.module';
 import { MessagingModule } from './messaging/messaging.module';
 import { ReservationsModule } from './reservations/reservations.module';
 import { CustomersModule } from './customers/customers.module';
+import { PublicModule } from './public/public.module';
 
 const staticModules = (): DynamicModule[] =>
   webDistPath()
@@ -36,6 +37,7 @@ const staticModules = (): DynamicModule[] =>
     MessagingModule,
     ReservationsModule,
     CustomersModule,
+    PublicModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

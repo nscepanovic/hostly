@@ -55,7 +55,7 @@ export class MessagingService {
       const content = renderTemplate(template, language, {
         guestName: [r.firstName, r.lastName].filter(Boolean).join(' ') || (language === 'sr' ? 'goste' : 'guest'),
         restaurantName: rest.name,
-        date: at.toFormat('cccc, d. LLLL yyyy.'),
+        date: at.toFormat(language === 'sr' ? 'cccc, d. LLLL yyyy.' : 'cccc, d LLLL yyyy'),
         time: at.toFormat('HH:mm'),
         covers: r.covers,
         manageUrl,

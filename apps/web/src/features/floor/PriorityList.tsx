@@ -66,6 +66,8 @@ export function PriorityList({ items, tables, timezone }: { items: ReservationDt
           arrivalAt={accepting.arrivalAt}
           departureAt={accepting.departureAt}
           customerId={accepting.customerId}
+          excludeReservationId={accepting.id}
+          current={{ tableIds: accepting.tableIds, labels: accepting.tableIds.map((id) => labelOf.get(id) ?? '?') }}
           noneLabel={`${t('actions.accept')} — ${t('topbar.withoutTable')}`}
           onClose={() => setAccepting(null)}
           onPick={(tableIds) => {
