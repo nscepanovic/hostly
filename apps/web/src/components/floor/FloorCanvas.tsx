@@ -20,6 +20,7 @@ export function FloorCanvas({
   highlightIds,
   dimIds,
   toolbar,
+  header,
 }: {
   tables: TableDto[];
   statuses: Map<string, TableStatus>;
@@ -31,6 +32,8 @@ export function FloorCanvas({
   highlightIds?: Set<string>;
   dimIds?: Set<string>;
   toolbar?: ReactNode;
+  /** Left side of the bar above the plan (e.g. the area picker). */
+  header?: ReactNode;
 }) {
   const { t } = useTranslation();
   const [containerRef, size] = useElementSize<HTMLDivElement>();
@@ -65,10 +68,25 @@ export function FloorCanvas({
     : { width: Math.max(size.width, 1) * zoom, height: Math.max(size.height, 1) * zoom };
 
   return (
-    <div className="relative h-full w-full">
+    <div className="flex h-full w-full flex-col">
+      <div className="flex shrink-0 items-center gap-2 px-2 pt-2">
+        <div className="min-w-0 flex-1">{header}</div>
+        <div className="flex items-center gap-0.5 rounded-xl border border-border bg-surface p-0.5">
+          {toolbar}
+          <IconButton label={t('floor.zoomOut')} onClick={() => onZoom(Math.max(1, zoom / 1.3))} disabled={zoom <= 1}>
+            <ZoomOut size={20} />
+          </IconButton>
+          <IconButton label={t('floor.zoomIn')} onClick={() => onZoom(Math.min(3, zoom * 1.3))}>
+            <ZoomIn size={20} />
+          </IconButton>
+          <IconButton label={t('floor.fit')} onClick={() => onZoom(1)}>
+            <Maximize size={20} />
+          </IconButton>
+        </div>
+      </div>
       <div
         ref={containerRef}
-        className="h-full w-full overflow-auto"
+        className="min-h-0 w-full flex-1 overflow-auto"
         onWheel={(e) => {
           if (!e.ctrlKey) return;
           e.preventDefault();
@@ -160,18 +178,6 @@ export function FloorCanvas({
             );
           })}
         </svg>
-      </div>
-      <div className="absolute top-2 right-2 flex items-center gap-1 rounded-xl border border-border bg-surface/90 p-1 backdrop-blur">
-        {toolbar}
-        <IconButton label={t('floor.zoomOut')} onClick={() => onZoom(Math.max(1, zoom / 1.3))} disabled={zoom <= 1}>
-          <ZoomOut size={20} />
-        </IconButton>
-        <IconButton label={t('floor.zoomIn')} onClick={() => onZoom(Math.min(3, zoom * 1.3))}>
-          <ZoomIn size={20} />
-        </IconButton>
-        <IconButton label={t('floor.fit')} onClick={() => onZoom(1)}>
-          <Maximize size={20} />
-        </IconButton>
       </div>
     </div>
   );

@@ -271,8 +271,8 @@ export const publicBookingSchema = z.object({
   email: z.email(),
   notes: z.string().trim().max(1000).optional(),
   language: z.enum(LANGUAGES).optional(),
-  /** Honeypot: real users never fill this hidden field. */
-  website: z.string().max(0).optional(),
+  /** Honeypot: real users never fill this hidden field; the API fakes success when it is set. */
+  website: z.string().max(500).optional(),
 });
 export type PublicBookingInput = z.infer<typeof publicBookingSchema>;
 

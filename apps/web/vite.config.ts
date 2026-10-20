@@ -42,6 +42,19 @@ export default defineConfig({
       },
     }),
   ],
+  build: {
+    rollupOptions: {
+      output: {
+        // Long-lived vendor chunks so app updates do not re-download libraries.
+        manualChunks: {
+          react: ['react', 'react-dom', 'react-router'],
+          data: ['@tanstack/react-query', 'zustand', 'socket.io-client'],
+          i18n: ['i18next', 'react-i18next', 'luxon'],
+          validation: ['zod', 'libphonenumber-js'],
+        },
+      },
+    },
+  },
   server: {
     port: 5173,
     host: true,

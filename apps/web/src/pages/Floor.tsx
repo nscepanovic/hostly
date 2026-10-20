@@ -73,19 +73,6 @@ export function FloorPage() {
 
   const canvas = (
     <div className="relative h-full min-h-0">
-      <div className="absolute top-2 left-2 z-10 flex items-center gap-2">
-        {areas.length > 1 ? (
-          <select className="field h-11 w-auto bg-surface/90 backdrop-blur" value={area?.id ?? ''} onChange={(e) => setAreaId(e.target.value)} aria-label={t('floor.area')}>
-            {areas.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name}
-              </option>
-            ))}
-          </select>
-        ) : (
-          <span className="rounded-lg bg-surface/90 px-3 py-2 font-semibold">{area?.name}</span>
-        )}
-      </div>
       {assigning && (
         <div className="absolute inset-x-2 bottom-2 z-10 flex items-center gap-2 rounded-xl bg-accent px-4 py-2 font-semibold text-accent-ink shadow-xl">
           <span className="flex-1">{t('floor.pickTableFor', { name: guestName(assigning), covers: assigning.covers })}</span>
@@ -103,6 +90,19 @@ export function FloorPage() {
         onZoom={setZoom}
         onTableTap={onTableTap}
         highlightIds={highlight}
+        header={
+          areas.length > 1 ? (
+            <select className="field h-11 w-auto max-w-full" value={area?.id ?? ''} onChange={(e) => setAreaId(e.target.value)} aria-label={t('floor.area')}>
+              {areas.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <span className="truncate px-1 font-semibold">{area?.name}</span>
+          )
+        }
         toolbar={
           me?.role === 'owner' ? (
             <IconButton label={t('nav.editor')} onClick={() => navigate('/editor')}>
