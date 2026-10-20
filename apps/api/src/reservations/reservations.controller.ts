@@ -40,6 +40,11 @@ const listQuery = z.object({
     .pipe(z.array(z.enum(RESERVATION_STATUSES)).optional()),
 });
 const dateQuery = z.object({ date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) });
+const freeTablesQuery = z.object({
+  arrivalAt: z.string().min(16),
+  departureAt: z.string().min(16),
+  excludeReservationId: z.uuid().optional(),
+});
 const acceptSchema = z.object({ tableIds: z.array(z.uuid()).default([]) });
 
 @Controller('reservations')
@@ -90,6 +95,27 @@ export class ReservationsController {
       areaId: q.areaId,
       excludeReservationId: q.excludeReservationId,
     });
+  }
+
+  /** Ids of active tables free for a window, any size (manual table picker). */
+  @Get('free-tables')
+  async freeTables(
+    @CurrentUser() user: AuthUser,
+    @Query(new ZodPipe(freeTablesQuery)) q: z.infer<typeof freeTablesQuery>,
+  ): Promise<string[]> {
+    const restaurant = await this.restaurants.get(user.restaurantId);
+    let from;
+    let to;
+    try {
+      from = parseDateTime(q.arrivalAt, restaurant.timezone);
+      to = parseDateTime(q.departureAt, restaurant.timezone);
+    } catch (err) {
+      throw new BadRequestException((err as Error).message);
+    }
+    const { free } = await this.availability.getFreeTables(user.restaurantId, { from: from.toJSDate(), to: to.toJSDate() }, 1, {
+      excludeReservationId: q.excludeReservationId,
+    });
+    return free.map((t) => t.id);
   }
 
   /** Dry-run validation so the form can warn before saving. */

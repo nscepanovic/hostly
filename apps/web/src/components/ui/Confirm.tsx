@@ -25,7 +25,7 @@ export function ConfirmHost() {
     useConfirmStore.setState({ request: null, text: '' });
   };
   return (
-    <Modal open={!!request} onClose={() => close(false)} title={request?.message ?? ''} size="sm">
+    <Modal open={!!request} nested onClose={() => close(false)} title={request?.message ?? ''} size="sm">
       {request?.input !== undefined && (
         <label className="mb-4 block">
           <span className="label">{request.input}</span>

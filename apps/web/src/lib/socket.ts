@@ -55,9 +55,9 @@ export function useRealtime(enabled: boolean) {
       'settings.updated': () => void qc.invalidateQueries({ queryKey: qk.restaurant }),
     };
     for (const event of Object.values(WS_EVENTS)) {
-      socket.on(event, (payload: never) => {
-        (handlers[event] as (p: never) => void)(payload);
-        listeners.get(event)?.forEach((fn) => fn(payload));
+      socket.on(event, (payload: unknown) => {
+        (handlers[event] as (p: unknown) => void)(payload);
+        listeners.get(event)?.forEach((fn) => (fn as (p: unknown) => void)(payload));
       });
     }
     socket.on('connect', () => {

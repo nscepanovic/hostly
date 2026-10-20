@@ -152,7 +152,7 @@ const sr: Translation = {
     adHoc: 'Spoji susedne',
     pickManually: 'Izaberi stolove',
     customerProfile: 'Profil gosta',
-    knownCustomer: 'Stalni gost',
+    knownCustomer: 'Gost iz baze',
     visits: '{{count}} poseta',
     history: 'Istorija',
     issues: 'Proveri pre čuvanja',

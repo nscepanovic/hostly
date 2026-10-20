@@ -150,7 +150,7 @@ const en = {
     adHoc: 'Join adjacent',
     pickManually: 'Pick tables',
     customerProfile: 'Customer profile',
-    knownCustomer: 'Returning guest',
+    knownCustomer: 'Guest on file',
     visits: '{{count}} visits',
     history: 'History',
     issues: 'Check before saving',

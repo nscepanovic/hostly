@@ -18,14 +18,14 @@ export function Segmented<T extends string>({
           role="tab"
           aria-selected={o.value === value}
           onClick={() => onChange(o.value)}
-          className={`flex h-9 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-md px-3 text-sm font-medium whitespace-nowrap transition ${
+          className={`flex h-9 min-w-0 flex-1 items-center justify-center gap-1 rounded-md px-1.5 text-[13px] font-medium whitespace-nowrap transition sm:gap-1.5 sm:px-3 sm:text-sm ${
             o.value === value ? 'bg-accent text-accent-ink' : 'text-muted hover:text-text'
           }`}
         >
-          {o.label}
+          <span className="min-w-0 truncate">{o.label}</span>
           {o.badge !== undefined && o.badge > 0 && (
             <span
-              className={`rounded-full px-1.5 text-xs leading-5 ${o.value === value ? 'bg-accent-ink/20' : 'bg-surface-3 text-text'}`}
+              className={`shrink-0 rounded-full px-1.5 text-xs leading-5 ${o.value === value ? 'bg-accent-ink/20' : 'bg-surface-3 text-text'}`}
             >
               {o.badge}
             </span>

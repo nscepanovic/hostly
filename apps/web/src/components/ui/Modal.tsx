@@ -12,6 +12,7 @@ export function Modal({
   actions,
   children,
   size = 'lg',
+  nested = false,
 }: {
   open: boolean;
   onClose: () => void;
@@ -19,6 +20,8 @@ export function Modal({
   actions?: ReactNode;
   children: ReactNode;
   size?: 'sm' | 'md' | 'lg';
+  /** Opened from inside another modal: stacks above it. */
+  nested?: boolean;
 }) {
   const { t } = useTranslation();
   useEffect(() => {
@@ -30,7 +33,7 @@ export function Modal({
   if (!open) return null;
   const width = size === 'sm' ? 'sm:max-w-md' : size === 'md' ? 'sm:max-w-xl' : 'sm:max-w-3xl';
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-stretch justify-center bg-black/60 sm:items-center sm:p-4" onMouseDown={onClose}>
+    <div className={`fixed inset-0 ${nested ? 'z-[60]' : 'z-50'} flex items-stretch justify-center bg-black/60 sm:items-center sm:p-4`} onMouseDown={onClose}>
       <div
         role="dialog"
         aria-modal="true"
