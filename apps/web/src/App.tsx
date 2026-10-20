@@ -66,8 +66,10 @@ function Protected() {
 }
 
 function OwnerOnly({ children }: { children: React.ReactNode }) {
-  const { data: me } = useMe();
-  return me?.role === 'owner' ? <>{children}</> : <Navigate to="/" replace />;
+  const { data: me, isLoading } = useMe();
+  if (isLoading) return <Spinner />;
+  if (!me) return <Navigate to="/login" replace />;
+  return me.role === 'owner' ? <>{children}</> : <Navigate to="/" replace />;
 }
 
 export function App() {
