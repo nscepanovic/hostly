@@ -1,0 +1,12 @@
+**/node_modules
+**/dist
+**/dev-dist
+**/coverage
+**/*.tsbuildinfo
+**/*.log
+logs
+.git
+.env
+.env.*
+!.env.example
+.DS_Store

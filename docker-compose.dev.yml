@@ -1,0 +1,42 @@
+# Test environment (hostly.rehemp.eco): Postgres + the app (API serving the SPA) in one stack, demo data only.
+#   docker compose -f docker-compose.dev.yml up -d --build
+# Runs in development mode with the built-in dev keys, and emails are only logged. Not for real data.
+# The app listens on 127.0.0.1:3000; put the reverse proxy / Cloudflare Tunnel for the domain in front of it.
+name: hostly-dev
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: hostly
+      POSTGRES_PASSWORD: hostly
+      POSTGRES_DB: hostly
+    volumes:
+      - hostly-dev-db:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U hostly -d hostly']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgres://hostly:hostly@db:5432/hostly
+      APP_URL: https://hostly.rehemp.eco
+      CORS_ORIGIN: https://hostly.rehemp.eco
+      COOKIE_SECURE: 'true'
+      # No SMTP_HOST: emails are printed to the app log, never sent.
+      SMTP_HOST: ''
+      REMINDERS_ENABLED: 'false'
+    ports:
+      - '127.0.0.1:${HOSTLY_APP_PORT:-3000}:3000'
+
+volumes:
+  hostly-dev-db:
