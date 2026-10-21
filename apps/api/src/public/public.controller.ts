@@ -1,4 +1,4 @@
-import { BadRequestException, Body, ConflictException, Controller, Get, HttpCode, Param, Post, Query } from '@nestjs/common';
+import { BadRequestException, Body, ConflictException, Controller, Get, Header, HttpCode, Param, Post, Query, StreamableFile } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { z } from 'zod';
 import {
@@ -12,7 +12,7 @@ import {
 import { Public } from '../common/decorators';
 import { ZodPipe } from '../common/zod.pipe';
 import { env } from '../config/env';
-import type { ReservationRow } from '../db/schema';
+import type { ReservationRow, RestaurantRow } from '../db/schema';
 import { ReservationsService } from '../reservations/reservations.service';
 import { RestaurantService } from '../restaurant/restaurant.service';
 import { PublicAvailabilityService } from './public-availability.service';
@@ -45,7 +45,18 @@ export class PublicController {
       websiteUrl: o.websiteUrl,
       intro: o.intro,
       enabled: o.enabled,
+      branding: await this.restaurants.branding(r),
     };
+  }
+
+  /** Cover / logo. URLs carry ?v=<upload time>, so they can be cached forever. */
+  @Throttle({ default: { limit: 300, ttl: 60_000 } })
+  @Get(':slug/images/:kind')
+  @Header('Cache-Control', 'public, max-age=31536000, immutable')
+  @Header('X-Content-Type-Options', 'nosniff')
+  async image(@Param('slug') slug: string, @Param('kind') kind: string): Promise<StreamableFile> {
+    const img = await this.restaurants.getImage(slug, kind);
+    return new StreamableFile(img.data, { type: img.contentType, length: img.data.length });
   }
 
   /** Only times that really have capacity are offered as available. */
@@ -99,15 +110,16 @@ export class PublicController {
     return { status: dto.status };
   }
 
-  private view(row: ReservationRow, restaurantName: string, timezone: string): PublicReservationView {
+  private async view(row: ReservationRow, r: RestaurantRow): Promise<PublicReservationView> {
     return {
-      restaurantName,
+      restaurantName: r.name,
       status: row.status,
       arrivalAt: row.arrivalAt.toISOString(),
       covers: row.covers,
       firstName: row.firstName,
       language: row.language,
-      timezone,
+      timezone: r.timezone,
+      branding: await this.restaurants.branding(r),
     };
   }
 
@@ -115,7 +127,7 @@ export class PublicController {
   async guestView(@Param('token') token: string): Promise<PublicReservationView> {
     const row = await this.reservations.findByToken(token);
     const r = await this.restaurants.get(row.restaurantId);
-    return this.view(row, r.name, r.timezone);
+    return this.view(row, r);
   }
 
   @Throttle(WRITE_LIMIT)
@@ -124,7 +136,7 @@ export class PublicController {
   async guestCancel(@Param('token') token: string): Promise<PublicReservationView> {
     const row = await this.reservations.guestCancel(token);
     const r = await this.restaurants.get(row.restaurantId);
-    return this.view(row, r.name, r.timezone);
+    return this.view(row, r);
   }
 
   @Throttle(WRITE_LIMIT)
@@ -134,6 +146,6 @@ export class PublicController {
     const row = await this.reservations.guestConfirm(token);
     if (row.status === 'cancelled') throw new BadRequestException('Reservation is cancelled');
     const r = await this.restaurants.get(row.restaurantId);
-    return this.view(row, r.name, r.timezone);
+    return this.view(row, r);
   }
 }

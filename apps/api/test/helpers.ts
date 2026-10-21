@@ -43,6 +43,8 @@ export async function login(app: INestApplication, email: string, password = 'se
     patch: (url: string, body?: object) => agent.patch(url).set('x-hostly', '1').send(body ?? {}),
     put: (url: string, body?: object) => agent.put(url).set('x-hostly', '1').send(body ?? {}),
     delete: (url: string) => agent.delete(url).set('x-hostly', '1'),
+    /** Multipart PUT with one file in field "file". */
+    upload: (url: string, data: Buffer, filename: string) => agent.put(url).set('x-hostly', '1').attach('file', data, filename),
   };
 }
 

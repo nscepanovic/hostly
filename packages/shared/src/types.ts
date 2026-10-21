@@ -12,7 +12,7 @@ import type {
   TagKind,
   WaitingStatus,
 } from './enums';
-import type { OnlineSettings, OpeningHours, ReservationExtras } from './schemas';
+import type { BookingTheme, BrandingImage, OnlineSettings, OpeningHours, ReservationExtras } from './schemas';
 
 export interface UserDto {
   id: string;
@@ -41,6 +41,14 @@ export interface RestaurantDto {
   address: string | null;
   /** Other restaurants that share this restaurant's guest database (empty = private). */
   sharesGuestsWith: Array<{ name: string; slug: string }>;
+  /** Booking page images (URL, or null when not uploaded). */
+  images: Record<BrandingImage, string | null>;
+}
+
+/** What guest-facing pages need to look like the restaurant. */
+export interface PublicBranding {
+  theme: BookingTheme;
+  images: Record<BrandingImage, string | null>;
 }
 
 export interface AreaDto {
@@ -208,6 +216,7 @@ export interface PublicRestaurantInfo {
   websiteUrl: string | null;
   intro: string | null;
   enabled: boolean;
+  branding: PublicBranding;
 }
 
 export interface PublicSlot {
@@ -223,6 +232,7 @@ export interface PublicReservationView {
   firstName: string | null;
   language: Language;
   timezone: string;
+  branding: PublicBranding;
 }
 
 export interface AuditLogDto {

@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { api, errorMessage } from '@/lib/api';
 import { luxonLocale, setLanguage } from '@/i18n';
 import { langInfo } from '@/lib/time';
+import { BrandedHeader, BrandedPage } from '@/features/booking/BrandedPage';
 
 /** Guest self-service page linked from emails: /r/:token (?action=confirm|cancel). */
 export default function GuestReservationPage() {
@@ -57,15 +58,14 @@ export default function GuestReservationPage() {
         : t('guest.cancelled');
 
   return (
-    <div data-theme="light" className="flex min-h-full items-start justify-center bg-bg p-4 text-text sm:items-center">
-      <div className="card w-full max-w-md p-6">
+    <BrandedPage branding={v?.branding}>
+      {v && <BrandedHeader name={v.restaurantName} subtitle={t('guest.title')} branding={v.branding} />}
+      <div className="p-5">
         {view.isLoading && <p className="text-muted">{t('common.loading')}</p>}
         {view.isError && <p>{t('guest.notFound')}</p>}
         {v && at && (
           <>
-            <h1 className="text-2xl font-bold">{v.restaurantName}</h1>
-            <p className="text-muted">{t('guest.title')}</p>
-            <div className="my-5 flex items-center gap-3 rounded-xl bg-surface-2 p-4">
+            <div className="mb-5 flex items-center gap-3 rounded-xl bg-surface-2 p-4">
               {v.status === 'cancelled' || v.status === 'no_show' ? (
                 <CalendarX className="shrink-0 text-danger" size={32} />
               ) : v.status === 'pending' ? (
@@ -106,6 +106,6 @@ export default function GuestReservationPage() {
           </>
         )}
       </div>
-    </div>
+    </BrandedPage>
   );
 }

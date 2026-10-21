@@ -215,49 +215,53 @@ function TopBar({ title, showDay }: { title: string; showDay: boolean }) {
       </div>
 
       {showDay && date && (
-        <div className="flex flex-wrap items-center gap-2 px-3 pb-2">
-          <button
-            type="button"
-            onClick={() => setDate(null)}
-            className={`h-11 rounded-lg px-4 font-semibold ${isToday ? 'bg-accent text-accent-ink' : 'border border-border bg-surface-2'}`}
-          >
-            {t('common.today')}
-          </button>
-          <div className="flex items-center rounded-lg border border-border bg-surface-2">
-            <IconButton label={t('topbar.prevDay')} onClick={() => setDate(shiftDate(date, -1))}>
-              <ChevronLeft size={22} />
-            </IconButton>
+        // Day controls centered; the summary sits on the right (below them on phones).
+        <div className="grid grid-cols-1 items-center gap-2 px-3 pb-2 md:grid-cols-[1fr_auto_1fr]">
+          <div className="hidden md:block" />
+          <div className="flex flex-wrap items-center justify-center gap-2">
             <button
               type="button"
-              className="relative flex h-11 items-center gap-2 px-2 text-[15px] font-medium tabular-nums"
-              onClick={() => dateInput.current?.showPicker?.()}
+              onClick={() => setDate(null)}
+              className={`h-11 rounded-lg px-4 font-semibold ${isToday ? 'bg-accent text-accent-ink' : 'border border-border bg-surface-2'}`}
             >
-              <CalendarDays size={18} className="text-muted" />
-              {fmtDate(date, i18n.language)}
-              <input
-                ref={dateInput}
-                type="date"
-                aria-label={t('topbar.pickDate')}
-                className="pointer-events-none absolute inset-0 opacity-0"
-                value={date}
-                onChange={(e) => e.target.value && setDate(e.target.value)}
-              />
+              {t('common.today')}
             </button>
-            <IconButton label={t('topbar.nextDay')} onClick={() => setDate(shiftDate(date, 1))}>
-              <ChevronRight size={22} />
-            </IconButton>
-          </div>
-          <select className="field h-11 w-auto min-w-28 flex-none" value={shift} onChange={(e) => setShift(e.target.value)}>
-            <option value="all">
-              {t('topbar.allDay')} {restaurant ? `${restaurant.dayStart}` : ''}
-            </option>
-            {shifts.map((s) => (
-              <option key={s.name} value={s.name}>
-                {t(`shift.${s.name}`, { defaultValue: s.name })} {s.start.toFormat('HH:mm')}–{s.end.toFormat('HH:mm')}
+            <div className="flex items-center rounded-lg border border-border bg-surface-2">
+              <IconButton label={t('topbar.prevDay')} onClick={() => setDate(shiftDate(date, -1))}>
+                <ChevronLeft size={22} />
+              </IconButton>
+              <button
+                type="button"
+                className="relative flex h-11 items-center gap-2 px-2 text-[15px] font-medium tabular-nums"
+                onClick={() => dateInput.current?.showPicker?.()}
+              >
+                <CalendarDays size={18} className="text-muted" />
+                {fmtDate(date, i18n.language)}
+                <input
+                  ref={dateInput}
+                  type="date"
+                  aria-label={t('topbar.pickDate')}
+                  className="pointer-events-none absolute inset-0 opacity-0"
+                  value={date}
+                  onChange={(e) => e.target.value && setDate(e.target.value)}
+                />
+              </button>
+              <IconButton label={t('topbar.nextDay')} onClick={() => setDate(shiftDate(date, 1))}>
+                <ChevronRight size={22} />
+              </IconButton>
+            </div>
+            <select className="field h-11 w-auto min-w-28 flex-none" value={shift} onChange={(e) => setShift(e.target.value)}>
+              <option value="all">
+                {t('topbar.allDay')} {restaurant ? `${restaurant.dayStart}` : ''}
               </option>
-            ))}
-          </select>
-          <div className="ml-auto flex items-center gap-3 text-sm text-muted tabular-nums">
+              {shifts.map((s) => (
+                <option key={s.name} value={s.name}>
+                  {t(`shift.${s.name}`, { defaultValue: s.name })} {s.start.toFormat('HH:mm')}–{s.end.toFormat('HH:mm')}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-center justify-center gap-3 text-sm text-muted tabular-nums md:justify-end">
             <span>
               {t('common.reservationsShort')} <b className="text-text">{summary.reservations}</b>
             </span>

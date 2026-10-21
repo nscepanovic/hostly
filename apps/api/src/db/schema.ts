@@ -17,6 +17,7 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 import type {
+  BrandingImage,
   CustomerType,
   Language,
   MessageChannel,
@@ -50,6 +51,7 @@ const encryptedJson = customType<{ data: unknown; driverData: string }>({
 
 /** Postgres tstzrange, written as '[from,to)'. Only used for the double-booking exclusion constraint. */
 const tstzrange = customType<{ data: string }>({ dataType: () => 'tstzrange' });
+const bytea = customType<{ data: Buffer }>({ dataType: () => 'bytea' });
 
 const id = () => uuid('id').primaryKey().defaultRandom();
 const createdAt = () => timestamp('created_at', { withTimezone: true }).notNull().defaultNow();
@@ -92,6 +94,19 @@ export const restaurants = pgTable('restaurants', {
   suspendedAt: timestamp('suspended_at', { withTimezone: true }),
   createdAt: createdAt(),
 });
+
+/** Booking page images (cover, logo), small and resized by the browser before upload. */
+export const restaurantImages = pgTable(
+  'restaurant_images',
+  {
+    restaurantId: restaurantRef(),
+    kind: text('kind').$type<BrandingImage>().notNull(),
+    contentType: text('content_type').notNull(),
+    data: bytea('data').notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.restaurantId, t.kind] })],
+);
 
 export const users = pgTable(
   'users',

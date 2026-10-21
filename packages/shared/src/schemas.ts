@@ -45,6 +45,25 @@ export const durationRuleSchema = z.object({
 });
 export type DurationRule = z.infer<typeof durationRuleSchema>;
 
+const hexColor = z.string().regex(/^#[0-9a-f]{6}$/i, 'Expected a color like #1a2b3c');
+
+/** Font families for the booking page; system fonts only, so nothing extra loads. */
+export const BOOKING_FONTS = ['modern', 'classic', 'friendly'] as const;
+export type BookingFont = (typeof BOOKING_FONTS)[number];
+
+/** Look of the public booking page. null colors = Hostly defaults. */
+export const bookingThemeSchema = z.object({
+  backgroundColor: hexColor.nullable(),
+  accentColor: hexColor.nullable(),
+  font: z.enum(BOOKING_FONTS),
+});
+export type BookingTheme = z.infer<typeof bookingThemeSchema>;
+export const DEFAULT_BOOKING_THEME: BookingTheme = { backgroundColor: null, accentColor: null, font: 'modern' };
+
+/** Images a restaurant can upload for its booking page. */
+export const BRANDING_IMAGES = ['cover', 'logo'] as const;
+export type BrandingImage = (typeof BRANDING_IMAGES)[number];
+
 export const onlineSettingsSchema = z.object({
   enabled: z.boolean(),
   maxPartySize: z.int().min(1).max(500),
@@ -61,6 +80,7 @@ export const onlineSettingsSchema = z.object({
   instagramUrl: z.string().max(300).nullable(),
   websiteUrl: z.string().max(300).nullable(),
   intro: z.string().max(1000).nullable(),
+  theme: bookingThemeSchema.default(DEFAULT_BOOKING_THEME),
 });
 export type OnlineSettings = z.infer<typeof onlineSettingsSchema>;
 
@@ -83,6 +103,7 @@ export const DEFAULT_ONLINE_SETTINGS: OnlineSettings = {
   instagramUrl: null,
   websiteUrl: null,
   intro: null,
+  theme: DEFAULT_BOOKING_THEME,
 };
 
 export const restaurantSettingsSchema = z.object({

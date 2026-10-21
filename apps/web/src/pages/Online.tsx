@@ -7,6 +7,7 @@ import { Button, IconButton } from '@/components/ui/Button';
 import { toast } from '@/components/ui/Toast';
 import { api, errorMessage } from '@/lib/api';
 import { qk, useRestaurant } from '@/lib/queries';
+import { BrandingEditor } from '@/features/booking/BrandingEditor';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -175,6 +176,10 @@ export default function OnlinePage() {
               {t('common.add')}
             </Button>
           </div>
+        </Section>
+
+        <Section title={t('online.appearance')}>
+          <BrandingEditor restaurant={restaurant} theme={s.theme} onChange={(theme) => set('theme', theme)} />
         </Section>
 
         <Section title={`${t('online.instagram')} · ${t('online.website')}`}>

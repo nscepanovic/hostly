@@ -18,15 +18,17 @@ function withQuery(path: string, query?: Query) {
 }
 
 async function request<T>(method: string, path: string, body?: unknown, query?: Query): Promise<T> {
+  const form = body instanceof FormData;
   const res = await fetch(`/api${withQuery(path, query)}`, {
     method,
     credentials: 'include',
     headers: {
-      ...(body !== undefined ? { 'content-type': 'application/json' } : {}),
+      // FormData sets its own multipart content type (with the boundary).
+      ...(body !== undefined && !form ? { 'content-type': 'application/json' } : {}),
       // Required by the API on writes (CSRF guard).
       'x-hostly': '1',
     },
-    body: body !== undefined ? JSON.stringify(body) : undefined,
+    body: form ? body : body !== undefined ? JSON.stringify(body) : undefined,
   });
   if (res.status === 204) return undefined as T;
   const text = await res.text();
@@ -41,6 +43,12 @@ export const api = {
   put: <T>(path: string, body?: unknown) => request<T>('PUT', path, body ?? {}),
   patch: <T>(path: string, body?: unknown) => request<T>('PATCH', path, body ?? {}),
   delete: <T>(path: string) => request<T>('DELETE', path),
+  /** PUT a file as multipart field "file". */
+  upload: <T>(path: string, file: Blob, filename: string) => {
+    const body = new FormData();
+    body.append('file', file, filename);
+    return request<T>('PUT', path, body);
+  },
 };
 
 export function errorMessage(err: unknown): string {

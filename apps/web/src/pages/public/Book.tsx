@@ -10,6 +10,7 @@ import { api, ApiError, errorMessage } from '@/lib/api';
 import { luxonLocale, setLanguage } from '@/i18n';
 import { LanguageSelect } from '@/components/LanguagePicker';
 import { langInfo } from '@/lib/time';
+import { BrandedHeader, BrandedPage } from '@/features/booking/BrandedPage';
 
 /** Public booking widget: /book/:slug (add ?embed=1 inside an iframe). */
 export default function BookPage() {
@@ -69,23 +70,23 @@ export default function BookPage() {
     book.mutate();
   };
 
-  const shell = (children: React.ReactNode) => (
-    <div data-theme="light" className={`min-h-full bg-bg text-text ${embed ? '' : 'sm:py-8'}`}>
-      <div className={`mx-auto w-full max-w-lg bg-surface p-5 ${embed ? '' : 'sm:rounded-2xl sm:border sm:border-border sm:shadow-sm'}`}>{children}</div>
-    </div>
+  const shell = (children: React.ReactNode, header?: React.ReactNode) => (
+    <BrandedPage branding={r?.branding} embed={embed}>
+      {header}
+      <div className="p-5">{children}</div>
+    </BrandedPage>
   );
 
   if (info.isLoading) return shell(<p className="text-muted">{t('common.loading')}</p>);
   if (!r) return shell(<p>{t('guest.notFound')}</p>);
 
   const header = (
-    <header className="mb-5">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold">{r.name}</h1>
-          <p className="text-muted">{t('book.title')}</p>
-        </div>
-        <div className="flex gap-1">
+    <BrandedHeader
+      name={r.name}
+      subtitle={t('book.title')}
+      branding={r.branding}
+      actions={
+        <>
           {r.instagramUrl && (
             <a href={r.instagramUrl} target="_blank" rel="noreferrer" className="flex h-11 w-11 items-center justify-center rounded-lg bg-surface-2" aria-label="Instagram">
               <Camera size={20} />
@@ -97,18 +98,17 @@ export default function BookPage() {
             </a>
           )}
           <LanguageSelect persist={false} className="h-11" />
-        </div>
-      </div>
-      {r.intro && <p className="mt-3 text-sm whitespace-pre-line">{r.intro}</p>}
-    </header>
+        </>
+      }
+    />
   );
+  const intro = r.intro && <p className="mb-5 text-sm whitespace-pre-line">{r.intro}</p>;
 
-  if (!r.enabled) return shell(<>{header}<p>{t('book.closed')}</p></>);
+  if (!r.enabled) return shell(<>{intro}<p>{t('book.closed')}</p></>, header);
 
   if (done) {
     return shell(
       <>
-        {header}
         <div className="flex flex-col items-center py-6 text-center">
           <CheckCircle2 size={56} className="text-accent" />
           <h2 className="mt-3 text-xl font-bold">{t('book.sent')}</h2>
@@ -128,6 +128,7 @@ export default function BookPage() {
           </Button>
         </div>
       </>,
+      header,
     );
   }
 
@@ -136,7 +137,7 @@ export default function BookPage() {
 
   return shell(
     <>
-      {header}
+      {intro}
       <form onSubmit={submit} className="flex flex-col gap-5">
         <div>
           <span className="label">{t('book.guests')}</span>
@@ -245,5 +246,6 @@ export default function BookPage() {
         )}
       </form>
     </>,
+    header,
   );
 }
