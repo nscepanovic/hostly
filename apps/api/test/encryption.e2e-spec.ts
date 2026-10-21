@@ -55,6 +55,33 @@ describe('personal data encryption (e2e)', () => {
     },
   );
 
+  const suggest = (field: string, q: string) => host.get(`/api/customers/suggest?field=${field}&q=${encodeURIComponent(q)}`).expect(200);
+
+  it.each([
+    ['name', 'Ko'],
+    ['name', 'kovač zol'],
+    ['phone', '065 12'],
+    ['phone', '+381 65'],
+    ['phone', '9876'],
+    ['email', 'zol'],
+    ['email', 'zoltan.zzyzx@ex'],
+  ])('suggests the guest while typing %s "%s"', async (field, q) => {
+    const res = await suggest(field, q);
+    expect(res.body.map((c: { lastName: string }) => c.lastName)).toContain(GUEST.lastName);
+    expect(res.body.length).toBeLessThanOrEqual(8);
+  });
+
+  it.each([
+    ['name', 'Z'],
+    ['name', 'example'], // the email domain does not match the name field
+    ['phone', '06'],
+    ['email', 'kovacevic'], // name does not match the email field
+    ['name', 'Kovačević Petar'],
+  ])('does not suggest for %s "%s"', async (field, q) => {
+    const res = await suggest(field, q);
+    expect(res.body.map((c: { lastName: string }) => c.lastName)).not.toContain(GUEST.lastName);
+  });
+
   it('logs in with the encrypted email, case-insensitively', async () => {
     await login(app, 'ZZYZX.Host@test.local', 'password123');
   });

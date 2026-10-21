@@ -165,3 +165,18 @@ export function guestQueryTokens(query: string): string[][] {
   }
   return groups;
 }
+
+export type GuestField = 'name' | 'phone' | 'email';
+
+/**
+ * Token groups for as-you-type suggestions on one form field. Stricter than
+ * guestQueryTokens: a name field only matches names, an email field only emails.
+ */
+export function guestFieldQueryTokens(field: GuestField, query: string): string[][] {
+  const q = query.trim();
+  if (field === 'phone') return /\d/.test(q) ? guestQueryTokens(q.replace(/[^\d\s+()./-]/g, '')) : [];
+  if (field === 'email') return q.length >= 3 ? [[blindIndex('e', q.toLowerCase().slice(0, 40))]] : [];
+  return words(q)
+    .filter((w) => w.length >= 2)
+    .map((w) => [blindIndex('n', w.slice(0, MAX_PREFIX))]);
+}

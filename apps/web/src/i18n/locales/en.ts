@@ -156,6 +156,8 @@ const en = {
     customerProfile: 'Customer profile',
     knownCustomer: 'Guest on file',
     visits: '{{count}} visits',
+    guestSuggestions: 'Guests on file',
+    unlinkGuest: 'Unlink guest',
     history: 'History',
     issues: 'Check before saving',
     endsAt: 'Ends',

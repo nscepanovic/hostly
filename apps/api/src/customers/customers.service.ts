@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { and, desc, eq, inArray, sql, type SQL } from 'drizzle-orm';
 import { LANGUAGE_INFO, normalizePhone, type CustomerDto, type CustomerInput, type Language } from '@hostly/shared';
-import { guestQueryTokens, phoneIndex } from '../common/crypto';
+import { guestFieldQueryTokens, guestQueryTokens, phoneIndex, type GuestField } from '../common/crypto';
 import { customerIndexes } from './customer-indexes';
 import { rethrowConflict } from '../common/pg-errors';
 import { InjectDb, type Db } from '../db/db.module';
@@ -22,6 +22,9 @@ export interface VisitDto {
   tables: string[];
   spend: number | null;
 }
+
+/** Matching guests considered for suggestions before ranking. */
+const SUGGEST_SCAN = 500;
 
 type Stats = { visits: number; cancellations: number; noShows: number; lastVisitAt: Date | string | null };
 const NO_STATS: Stats = { visits: 0, cancellations: 0, noShows: 0, lastVisitAt: null };
@@ -134,6 +137,27 @@ export class CustomersService {
     });
     const page = rows.slice(opts.offset, opts.offset + opts.limit);
     return { total: rows.length, items: page.map((c) => toDto(c, stats.get(c.id))) };
+  }
+
+  /**
+   * As-you-type guest suggestions for the reservation form: guests whose name,
+   * phone or email (by `field`) starts with what was typed. Regulars first.
+   */
+  async suggest(restaurantId: string, field: GuestField, query: string, limit: number): Promise<CustomerDto[]> {
+    const groups = guestFieldQueryTokens(field, query);
+    if (!groups.length) return [];
+    const conds: SQL[] = [eq(customers.guestBookId, await this.book(restaurantId))];
+    for (const g of groups) conds.push(sql`${customers.searchTokens} && ${sql.param(g)}::text[]`);
+    // Ranking needs visit stats, so it runs here on a bounded set (a 2-letter prefix can match many guests).
+    const rows = await this.db.select().from(customers).where(and(...conds)).orderBy(desc(customers.createdAt)).limit(SUGGEST_SCAN);
+    const stats = await this.stats(rows.map((r) => r.id));
+    const visits = (id: string) => stats.get(id)?.visits ?? 0;
+    const last = (id: string) => {
+      const at = stats.get(id)?.lastVisitAt;
+      return at ? new Date(at).getTime() : 0;
+    };
+    rows.sort((a, b) => visits(b.id) - visits(a.id) || last(b.id) - last(a.id) || b.createdAt.getTime() - a.createdAt.getTime());
+    return rows.slice(0, limit).map((c) => toDto(c, stats.get(c.id)));
   }
 
   async get(restaurantId: string, id: string): Promise<CustomerDto> {

@@ -13,6 +13,12 @@ const listQuery = z.object({
   offset: z.coerce.number().int().min(0).default(0),
 });
 
+const suggestQuery = z.object({
+  field: z.enum(['name', 'phone', 'email']),
+  q: z.string().max(100).default(''),
+  limit: z.coerce.number().int().min(1).max(20).default(8),
+});
+
 @Controller('customers')
 export class CustomersController {
   constructor(private readonly customers: CustomersService) {}
@@ -20,6 +26,12 @@ export class CustomersController {
   @Get()
   list(@CurrentUser() user: AuthUser, @Query(new ZodPipe(listQuery)) q: z.infer<typeof listQuery>) {
     return this.customers.list(user.restaurantId, q);
+  }
+
+  /** As-you-type guest suggestions for the reservation form. */
+  @Get('suggest')
+  suggest(@CurrentUser() user: AuthUser, @Query(new ZodPipe(suggestQuery)) q: z.infer<typeof suggestQuery>): Promise<CustomerDto[]> {
+    return this.customers.suggest(user.restaurantId, q.field, q.q, q.limit);
   }
 
   /** Exact match on normalized phone for reservation-form autocomplete. */

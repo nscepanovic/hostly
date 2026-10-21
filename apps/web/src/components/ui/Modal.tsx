@@ -1,8 +1,12 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { IconButton } from './Button';
+
+/** Open modals. Escape closes only the top one: nested above normal, then the latest opened. */
+const stack: Array<{ nested: boolean }> = [];
+const topModal = () => stack.reduce<(typeof stack)[number] | undefined>((top, m) => (!top || m.nested >= top.nested ? m : top), undefined);
 
 /** Full-screen on phones, centered card on tablets and up. */
 export function Modal({
@@ -24,12 +28,25 @@ export function Modal({
   nested?: boolean;
 }) {
   const { t } = useTranslation();
+  const self = useRef({ nested }).current;
+  self.nested = nested;
+  const close = useRef(onClose);
+  close.current = onClose;
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    stack.push(self);
+    const onKey = (e: KeyboardEvent) => {
+      // React may re-render between listeners, so the next modal down must also see this key as used.
+      if (e.key !== 'Escape' || e.defaultPrevented || topModal() !== self) return;
+      e.preventDefault();
+      close.current();
+    };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      stack.splice(stack.indexOf(self), 1);
+    };
+  }, [open, self]);
   if (!open) return null;
   const width = size === 'sm' ? 'sm:max-w-md' : size === 'md' ? 'sm:max-w-xl' : 'sm:max-w-3xl';
   return createPortal(

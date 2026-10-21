@@ -34,6 +34,7 @@ import { CoversPad } from './CoversPad';
 import { TablePicker } from './TablePicker';
 import { DurationPicker, DURATION_CHIPS } from './DurationPicker';
 import { useCustomerLookup } from './useCustomerLookup';
+import { useGuestSuggest } from './GuestSuggest';
 
 export interface FormState {
   status: ReservationDto['status'];
@@ -195,6 +196,32 @@ function ReservationForm({ id, draft, onClose }: { id?: string; draft: Reservati
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lookup.data]);
+  // Picking a suggested guest links the reservation and fills in what the record knows.
+  const pickCustomer = (c: CustomerDto) => {
+    setCustomer(c);
+    setForm(
+      (f) =>
+        f && {
+          ...f,
+          customerId: c.id,
+          lastName: c.lastName ?? f.lastName,
+          firstName: c.firstName ?? f.firstName,
+          phone: c.phone ? formatPhone(c.phone) : f.phone,
+          email: c.email ?? f.email,
+          language: f.language || c.language || '',
+          tags: [...new Set([...f.tags, ...c.tags])],
+        },
+    );
+  };
+  const unlinkCustomer = () => {
+    setCustomer(null);
+    set('customerId', null);
+  };
+  const guestSuggest = useGuestSuggest({
+    values: { phone: form?.phone ?? '', lastName: form?.lastName ?? '', firstName: form?.firstName ?? '', email: form?.email ?? '' },
+    enabled: !!form && !form.customerId,
+    onPick: pickCustomer,
+  });
   const customerQuery = useQuery({
     queryKey: qk.customer(form?.customerId ?? ''),
     queryFn: () => api.get<CustomerDto>(`/customers/${form!.customerId}`),
@@ -422,13 +449,13 @@ function ReservationForm({ id, draft, onClose }: { id?: string; draft: Reservati
       )}
 
       {/* Row 2: guest */}
-      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="relative mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Field label={t('reservation.telephone')} className="col-span-2 sm:col-span-1">
           <input
             className="field"
             type="tel"
             inputMode="tel"
-            autoComplete="off"
+            {...guestSuggest.inputProps('phone')}
             value={form.phone}
             onChange={(e) => {
               set('phone', e.target.value);
@@ -440,14 +467,15 @@ function ReservationForm({ id, draft, onClose }: { id?: string; draft: Reservati
           />
         </Field>
         <Field label={t('reservation.surname')}>
-          <input className="field" value={form.lastName} onChange={(e) => set('lastName', e.target.value)} />
+          <input className="field" {...guestSuggest.inputProps('lastName')} value={form.lastName} onChange={(e) => set('lastName', e.target.value)} />
         </Field>
         <Field label={t('reservation.name')}>
-          <input className="field" value={form.firstName} onChange={(e) => set('firstName', e.target.value)} />
+          <input className="field" {...guestSuggest.inputProps('firstName')} value={form.firstName} onChange={(e) => set('firstName', e.target.value)} />
         </Field>
         <Field label={t('reservation.email')} className="col-span-2 sm:col-span-1">
-          <input className="field" type="email" value={form.email} onChange={(e) => set('email', e.target.value)} />
+          <input className="field" type="email" {...guestSuggest.inputProps('email')} value={form.email} onChange={(e) => set('email', e.target.value)} />
         </Field>
+        {guestSuggest.dropdown}
       </div>
       {linkedCustomer && (
         <div
@@ -461,6 +489,11 @@ function ReservationForm({ id, draft, onClose }: { id?: string; draft: Reservati
           <span className="text-muted">
             {t('reservation.visits', { count: linkedCustomer.stats.visits })} · {t('customers.noShows')}: {linkedCustomer.stats.noShows}
           </span>
+          {!id && (
+            <IconButton label={t('reservation.unlinkGuest')} className="-my-2 ml-auto h-10 w-10 text-muted" onClick={unlinkCustomer}>
+              <X size={18} />
+            </IconButton>
+          )}
           {linkedCustomer.notes && <span className="w-full text-muted italic">{linkedCustomer.notes}</span>}
         </div>
       )}

@@ -158,6 +158,8 @@ const sr: Translation = {
     customerProfile: 'Profil gosta',
     knownCustomer: 'Gost iz baze',
     visits: '{{count}} poseta',
+    guestSuggestions: 'Gosti iz baze',
+    unlinkGuest: 'Odveži gosta',
     history: 'Istorija',
     issues: 'Proveri pre čuvanja',
     endsAt: 'Kraj',
