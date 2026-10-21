@@ -16,4 +16,8 @@ export function fmtMoney(amount: number, lang: string, decimals = 2) {
   return f.format(amount);
 }
 
+/** Amount without the currency, for places that show RSD separately ("1.890.710"). */
+export const fmtAmount = (amount: number, lang: string, decimals = 0) =>
+  new Intl.NumberFormat(langInfo(lang).locale, { minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(amount);
+
 export const fmtQty = (q: number, lang: string) => new Intl.NumberFormat(langInfo(lang).locale, { maximumFractionDigits: 3 }).format(q);

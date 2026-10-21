@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { toast } from '@/components/ui/Toast';
 import { api, errorMessage } from '@/lib/api';
 import { guestName } from '@/lib/day';
-import { fmtMoney, fmtQty } from '@/lib/money';
+import { CURRENCY, fmtAmount, fmtMoney, fmtQty } from '@/lib/money';
 import { useRestaurant } from '@/lib/queries';
 import { dayWindow, fmtDateTime, langInfo, shiftDate, todayBusinessDate } from '@/lib/time';
 import { useReceiptUi } from '@/store/receipts';
@@ -37,6 +37,7 @@ export default function AnalyticsPage() {
   const lang = i18n.language;
   const locale = langInfo(lang).locale;
   const money = (v: number) => fmtMoney(v, lang, 0);
+  const amount = (v: number) => fmtAmount(v, lang);
   const tick = useMemo(() => new Intl.NumberFormat(locale, { notation: 'compact', maximumFractionDigits: 1 }), [locale]);
   const receiptsText = (n: number) => t('analytics.receiptsCount', { count: n });
 
@@ -122,10 +123,15 @@ export default function AnalyticsPage() {
         {a && (
           <>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-              <Tile label={t('analytics.revenue')} value={money(a.revenue)} />
+              <Tile label={t('analytics.revenue')} value={amount(a.revenue)} unit={CURRENCY} />
               <Tile label={t('analytics.receipts')} value={String(a.receipts)} />
-              <Tile label={t('analytics.averageReceipt')} value={a.averageReceipt !== null ? money(a.averageReceipt) : '—'} />
-              <Tile label={t('analytics.perGuest')} value={a.revenuePerCover !== null ? money(a.revenuePerCover) : '—'} hint={t('analytics.perGuestHint', { count: a.coversWithReceipt })} />
+              <Tile label={t('analytics.averageReceipt')} value={a.averageReceipt !== null ? amount(a.averageReceipt) : '—'} unit={a.averageReceipt !== null ? CURRENCY : undefined} />
+              <Tile
+                label={t('analytics.perGuest')}
+                value={a.revenuePerCover !== null ? amount(a.revenuePerCover) : '—'}
+                unit={a.revenuePerCover !== null ? CURRENCY : undefined}
+                hint={t('analytics.perGuestHint', { count: a.coversWithReceipt })}
+              />
               <Tile
                 label={t('analytics.coverage')}
                 value={coverage !== null ? `${coverage}%` : '—'}
@@ -179,11 +185,15 @@ export default function AnalyticsPage() {
   );
 }
 
-function Tile({ label, value, hint }: { label: string; value: string; hint?: string }) {
+function Tile({ label, value, unit, hint }: { label: string; value: string; unit?: string; hint?: string }) {
   return (
-    <div className="card p-3">
+    <div className="card min-w-0 p-3">
       <div className="text-xs font-medium tracking-wide text-muted uppercase">{label}</div>
-      <div className="mt-1 text-2xl font-bold tabular-nums">{value}</div>
+      {/* Currency as a small unit so large amounts fit the tile. */}
+      <div className="mt-1 flex flex-wrap items-baseline gap-x-1.5">
+        <span className="text-2xl font-bold tabular-nums">{value}</span>
+        {unit && <span className="text-sm font-medium text-muted">{unit}</span>}
+      </div>
       {hint && <div className="mt-0.5 text-xs text-muted">{hint}</div>}
     </div>
   );
