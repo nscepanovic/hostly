@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="sr-Cyrl-RS">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex">
+    <title>&#x41F;&#x440;&#x43E;&#x432;&#x435;&#x440;&#x430; &#x440;&#x430;&#x447;&#x443;&#x43D;&#x430; - TaxCore</title>
+    <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="/lib/animate.css/animate.min.css" />
+    <link rel="stylesheet" href="/lib/bootstrap-datetimepicker/css/tempus-dominus.min.css" />
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/site.css" />
+    <link rel="stylesheet" href="/css/custom.css" />
+          
+    <link rel="stylesheet" href="/lib/font-awesome/css/all.min.css" />
+    <link rel="stylesheet" href="/css/themes/default/custom.css" />
+    
+    <link rel="stylesheet" href="/lib/toastr.js/toastr.min.css" />
+
+    <style>
+        .form-group {
+            display: grid;
+        }
+
+        .col-form-label {
+            font-weight: bold;
+        }
+    </style>
+
+    
+    <script src="/lib/jquery/jquery.min.js"></script>
+    <script src="/lib/popper.js/umd/popper.min.js"></script>
+    <script src="/lib/jqueryui/jquery-ui.min.js"></script>
+    <script src="/lib/jquery.mask/jquery.mask.min.js"></script>
+    <script src="/lib/twitter-bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="/lib/jquery-validate/jquery.validate.min.js"></script>
+    <script src="/js/knockout-3.5.1.js"></script>
+    <script src="/js/invoice-verify.js?v=GJUkuN7jB0Vo-h_-WxOfLjuP9RYwajl0dE2MBmIiFfY"></script>
+
+
+
+    <script type="text/javascript">
+        $(document).ready(function () {
+
+            viewModel = new ViewModel();
+            ko.applyBindings(viewModel);
+            viewModel.InvoiceNumber('K8NH2BHV-K8NH2BHV-20498');
+            viewModel.Token('3b02540c-a1c4-4fea-8505-9220a62257d6');
+
+viewModel.IsNormalOrAdvance(true); viewModel.IsNormalSale(true); 
+                });
+
+    </script>
+
+    <script type="text/javascript">
+        var rootPath = 'https://suf.purs.gov.rs';
+        var lang = 'sr-Cyrl-RS';
+        var dateTimePickerFormat = 'd.m.yyyy. HH:ii';
+        var showMeridianTime = true;
+    </script>
+</head>
+<body class="body-content">
+    <div class="container">
+        <div class="m-t-md">
+            <div class="mr-1 ml-1 justify-content-between d-flex">
+                <a href="/" class="navbar-brand font-bold" style="background-color:inherit;color:black;padding-right: 5px;margin-right: 5px;display: flex;align-items: center;">
+                    <img src="/images/logo.png" width="40"> <span style="padding-left: 14px;">  &#x41F;&#x440;&#x43E;&#x432;&#x435;&#x440;&#x430; &#x440;&#x430;&#x447;&#x443;&#x43D;&#x430; </span>
+                </a>
+                <ul class="nav navbar-nav ml-auto">
+                    <li class="nav-item dropdown">
+                        <a id="languagesSelect" href="#" class="nav-link dropdown-toggle pb-1 pt-3" data-bs-toggle="dropdown"><img src="/images/Flags/sr-Cyrl-RS.png" alt="&#x441;&#x440;&#x43F;&#x441;&#x43A;&#x438; (&#x45B;&#x438;&#x440;&#x438;&#x43B;&#x438;&#x446;&#x430;, &#x421;&#x440;&#x431;&#x438;&#x458;&#x430;)" width="16" /></a>
+                        <div class="dropdown-menu dropdown-menu-right">
+                                <a href="/Home/ChangeLanguage/sr-Cyrl-RS" class="dropdown-item font-bold"><img src="/images/Flags/sr-Cyrl-RS.png" alt="&#x441;&#x440;&#x43F;&#x441;&#x43A;&#x438; (&#x45B;&#x438;&#x440;&#x438;&#x43B;&#x438;&#x446;&#x430;, &#x421;&#x440;&#x431;&#x438;&#x458;&#x430;)" width="16" /> &#x421;&#x440;&#x43F;&#x441;&#x43A;&#x438; (&#x45B;&#x438;&#x440;&#x438;&#x43B;&#x438;&#x446;&#x430;, &#x421;&#x440;&#x431;&#x438;&#x458;&#x430;)</a>
+                                <a href="/Home/ChangeLanguage/en-US" class="dropdown-item "><img src="/images/Flags/en-US.png" alt="English (United States)" width="16" /> English (United States)</a>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+            <hr />
+            
+<form action="/v" method="post">    <div class="row">
+        <div class="col-lg-12  text-center">
+            <div class="panel panel-primary">
+                <div class="panel-heading">
+                    <i class="glyphicon glyphicon-info-sign"></i>
+                    &#x421;&#x442;&#x430;&#x442;&#x443;&#x441; &#x440;&#x430;&#x447;&#x443;&#x43D;&#x430;
+                </div>
+                <div class="panel-body">
+                    <div class="form-group">
+                        <div class="col-md-12">
+                                <label class="h2" for="invoiceStatusLabel" id="invoiceStatusLabel" style="margin-top:10px">&#x420;&#x430;&#x447;&#x443;&#x43D; &#x458;&#x435; &#x43F;&#x440;&#x43E;&#x432;&#x435;&#x440;&#x435;&#x43D;</label>
+                            <br /> <img src="/images/Verification/Valid.png" width="100" height="100" />
+
+
+                        </div>
+                        <div class="col-md-12">
+
+                                    <span style="padding: 10px 0px">
+                                        <text>
+                                            <b>
+                                                &#x423;&#x43F;&#x43E;&#x440;&#x435;&#x434;&#x438;&#x442;&#x435; &#x432;&#x440;&#x435;&#x43C;&#x435; &#x438;&#x437;&#x434;&#x430;&#x432;&#x430;&#x45A;&#x430; &#x438; &#x438;&#x437;&#x43D;&#x43E;&#x441; &#x43F;&#x440;&#x43E;&#x43C;&#x435;&#x442;&#x430; &#x43D;&#x430; &#x43E;&#x432;&#x43E;&#x458; &#x441;&#x442;&#x440;&#x430;&#x43D;&#x438; &#x438; &#x43D;&#x430; &#x412;&#x430;&#x448;&#x435;&#x43C; &#x440;&#x430;&#x447;&#x443;&#x43D;&#x443;. &#x423; &#x441;&#x43B;&#x443;&#x447;&#x430;&#x458;&#x443; &#x43D;&#x435;&#x458;&#x435;&#x434;&#x43D;&#x430;&#x43A;&#x43E;&#x441;&#x442;&#x438;, <a target="_blank" href='/CustomerReport/K8NH2BHV-K8NH2BHV-20498'>&#x43F;&#x440;&#x438;&#x458;&#x430;&#x432;&#x438;&#x442;&#x435; &#x441;&#x43B;&#x443;&#x447;&#x430;&#x458; &#x43F;&#x43E;&#x440;&#x435;&#x441;&#x43A;&#x43E;&#x458; &#x443;&#x43F;&#x440;&#x430;&#x432;&#x438;.</a>                                            </b>
+                                        </text>
+                                    </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-lg-6 col-md-6 text-center">
+            <div class="panel panel-info">
+                <div class="panel-heading">
+                    <i class="glyphicon glyphicon-arrow-right"></i>
+                    &#x417;&#x430;&#x445;&#x442;&#x435;&#x432; &#x437;&#x430; &#x444;&#x438;&#x441;&#x43A;&#x430;&#x43B;&#x438;&#x437;&#x430;&#x446;&#x438;&#x458;&#x443; &#x440;&#x430;&#x447;&#x443;&#x43D;&#x430;
+                </div>
+                <div class="panel-body">
+                        <div class="form-group">
+                            <label class="col-form-label">&#x41F;&#x418;&#x411;</label>
+                            <div class="col-md-12">
+                                <span id="tinLabel">
+                                    100049486
+                                    <span>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="col-form-label">&#x418;&#x43C;&#x435; &#x43F;&#x440;&#x43E;&#x434;&#x430;&#x458;&#x43D;&#x43E;&#x433; &#x43C;&#x435;&#x441;&#x442;&#x430;</label>
+                            <div class="col-md-12">
+                                <span id="shopFullNameLabel">1324726-J017</span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="col-form-label">&#x410;&#x434;&#x440;&#x435;&#x441;&#x430;</label>
+                            <div class="col-md-12">
+                                <span id="addressLabel">&#x411;&#x420;&#x410;&#x40B;&#x415; &#x420;&#x418;&#x411;&#x41D;&#x418;&#x41A;&#x410;&#x420; 29   </span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="col-form-label">&#x413;&#x440;&#x430;&#x434;</label>
+                            <div class="col-md-12">
+                                <span id="cityLabel">&#x41D;&#x41E;&#x412;&#x418; &#x421;&#x410;&#x414;</span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="col-form-label">&#x41E;&#x43F;&#x448;&#x442;&#x438;&#x43D;&#x430;</label>
+                            <div class="col-md-12">
+                                <span id="administrativeUnitLabel">&#x41D;&#x43E;&#x432;&#x438; &#x421;&#x430;&#x434;</span>
+                            </div>
+                        </div>
+
+                    <div class="form-group">
+                        <label class="col-form-label">&#x418;&#x414; &#x43A;&#x443;&#x43F;&#x446;&#x430;</label>
+                        <div class="col-md-12">
+                            <span id="buyerIdLabel">
+                                
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="col-form-label">&#x417;&#x430;&#x442;&#x440;&#x430;&#x436;&#x438;&#x43E;</label>
+                        <div class="col-md-12">
+                            <span id="requestedByLabel">
+                                K8NH2BHV
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="col-form-label" for="">&#x412;&#x440;&#x441;&#x442;&#x430;</label>
+                        <div class="col-md-12">
+                            <span id="invoiceTypeId">&#x41F;&#x440;&#x43E;&#x43C;&#x435;&#x442;</span>
+                            <span id="transactionTypeId">&#x41F;&#x440;&#x43E;&#x434;&#x430;&#x458;&#x430;</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 col-md-6 text-center">
+            <div class="panel panel-info">
+                <div class="panel-heading">
+                    <i class="glyphicon glyphicon-arrow-left"></i>
+                    &#x420;&#x435;&#x437;&#x443;&#x43B;&#x442;&#x430;&#x442; &#x444;&#x438;&#x441;&#x43A;&#x430;&#x43B;&#x438;&#x437;&#x430;&#x446;&#x438;&#x458;&#x435; &#x440;&#x430;&#x447;&#x443;&#x43D;&#x430;
+                </div>
+                <div class="panel-body">
+
+                    <div class="form-group">
+                        <label class="col-form-label">&#x423;&#x43A;&#x443;&#x43F;&#x430;&#x43D; &#x438;&#x437;&#x43D;&#x43E;&#x441;</label>
+                        <div class="col-md-12">
+                            <span id="totalAmountLabel">
+                                1.107,00
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="col-form-label">&#x411;&#x440;&#x43E;&#x458;&#x430;&#x447; &#x43F;&#x43E; &#x432;&#x440;&#x441;&#x442;&#x438; &#x442;&#x440;&#x430;&#x43D;&#x441;&#x430;&#x43A;&#x446;&#x438;&#x458;&#x435;</label>
+                        <div class="col-md-12">
+                            <span id="transactionTypeCounterLabel">
+                                20474
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="col-form-label">&#x411;&#x440;&#x43E;&#x458;&#x430;&#x447; &#x443;&#x43A;&#x443;&#x43F;&#x43D;&#x43E;&#x433; &#x431;&#x440;&#x43E;&#x458;&#x430;</label>
+                        <div class="col-md-12">
+                            <span id="totalCounterLabel">
+                                20498
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="col-form-label">&#x415;&#x43A;&#x441;&#x442;&#x435;&#x43D;&#x437;&#x438;&#x458;&#x430; &#x431;&#x440;&#x43E;&#x458;&#x430;&#x447;&#x430; &#x440;&#x430;&#x447;&#x443;&#x43D;&#x430;</label>
+                        <div class="col-md-12">
+                            <span id="invoiceCounterExtensionLabel">
+                                &#x41F;&#x41F;
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="col-form-label">&#x417;&#x430;&#x442;&#x440;&#x430;&#x436;&#x438;&#x43E; - &#x41F;&#x43E;&#x442;&#x43F;&#x438;&#x441;&#x430;&#x43E; - &#x411;&#x440;&#x43E;&#x458;&#x430;&#x447;</label>
+                        <div class="col-md-12">
+                            <span id="invoiceNumberLabel">
+                                K8NH2BHV-K8NH2BHV-20498
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="col-form-label">&#x41F;&#x43E;&#x442;&#x43F;&#x438;&#x441;&#x430;&#x43E;</label>
+                        <div class="col-md-12">
+                            <span id="signedByLabel">
+                                K8NH2BHV
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="col-form-label">&#x41F;&#x424;&#x420; &#x432;&#x440;&#x435;&#x43C;&#x435; (&#x432;&#x440;&#x435;&#x43C;&#x435;&#x43D;&#x441;&#x43A;&#x430; &#x437;&#x43E;&#x43D;&#x430; &#x441;&#x435;&#x440;&#x432;&#x435;&#x440;&#x430;)</label>
+                        <div class="col-md-12">
+                            <span id="sdcDateTimeLabel">
+                                26.5.2026. 18:19:31
+                            </span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+        <div class="row">
+            <div class="col-lg-12 text-center centered">
+                <div class="panel panel-info">
+                    <div class="panel-heading">
+                        <h5 class="panel-title">
+                            <a data-bs-toggle="collapse" href="#collapse-specs" class="collapsed" aria-expanded="false"><i class="glyphicon glyphicon-align-justify"></i> &#x421;&#x43F;&#x435;&#x446;&#x438;&#x444;&#x438;&#x43A;&#x430;&#x446;&#x438;&#x458;&#x430; &#x440;&#x430;&#x447;&#x443;&#x43D;&#x430;</a>
+                        </h5>
+                    </div>
+                    <div id="collapse-specs" class="panel-collapse in collapse">
+                        <div class="panel-body">
+                            <div class="table-responsive m-t">
+                                <table class="table invoice-table" aria-label="Invoice specification" data-bind="visible: !LoadingSpecifications()">
+                                    <thead>
+                                        <tr>
+                                            <th style="min-height: 200px;">&#x41D;&#x430;&#x437;&#x438;&#x432;</th>
+                                            <th>&#x41A;&#x43E;&#x43B;&#x438;&#x447;&#x438;&#x43D;&#x430;</th>
+                                            <th>&#x408;&#x435;&#x434;. &#x446;&#x435;&#x43D;&#x430; &#x441;&#x430; &#x41F;&#x414;&#x412;</th>
+                                            <th>&#x423;&#x43A;&#x443;&#x43F;&#x43D;&#x430; &#x446;&#x435;&#x43D;&#x430;</th>
+                                            <th>&#x41E;&#x441;&#x43D;&#x43E;&#x432;&#x438;&#x446;&#x430;</th>
+                                            <th>&#x41F;&#x414;&#x412;</th>
+                                            <th>&#x421;&#x442;&#x43E;&#x43F;&#x430;</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    <tbody data-bind="foreach: Specifications">
+                                        <tr>
+                                            <td>
+                                                <strong data-bind="text: Name"></strong>
+                                            </td>
+                                            <td data-bind="decimalAsText: Quantity"></td>
+                                            <td data-bind="decimalAsText: UnitPrice"></td>
+                                            <td data-bind="decimalAsText: Total"></td>
+                                            <td data-bind="decimalAsText: TaxBaseAmount"></td>
+                                            <td data-bind="decimalAsText: VatAmount"></td>
+                                            <td data-bind="text: Label"></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+
+                                <div data-bind="visible: LoadingSpecifications" class="sk-spinner sk-spinner-wave">
+                                    <div class="sk-rect1"></div>
+                                    <div class="sk-rect2"></div>
+                                    <div class="sk-rect3"></div>
+                                    <div class="sk-rect4"></div>
+                                    <div class="sk-rect5"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    <div class="row">
+        <div class="col-lg-12 text-center centered">
+            <div class="panel panel-warning">
+                <div class="panel-heading">
+                    <h4 class="panel-title">
+                        <a data-bs-toggle="collapse" href="#collapse3"><i class="glyphicon glyphicon-list-alt"></i> &#x416;&#x443;&#x440;&#x43D;&#x430;&#x43B;</a>
+                    </h4>
+                </div>
+                <div id="collapse3" class="panel-collapse collapse">
+                    <div class="panel-body">
+                            <pre style="font-family:monospace">============ ФИСКАЛНИ РАЧУН ============
+               100049486                
+     dm drogerie markt doo Beograd      
+              1324726-J017              
+          БРАЋЕ РИБНИКАР 29             
+                Нови Сад                
+Касир:                            203854
+ЕСИР број:                        962/23
+-------------ПРОМЕТ ПРОДАЈА-------------
+Артикли
+========================================
+Назив   Цена         Кол.         Укупно
+BIOBAZA roll on GREEN TEA 50ml (Ђ)      
+       459,00          1          459,00
+Killys PasteLOVE sudjer (Ђ)             
+       349,00          1          349,00
+s-he veštačke trepav. 274/403 (Ђ)       
+       299,00          1          299,00
+----------------------------------------
+Укупан износ:                   1.107,00
+Платна картица:                 1.107,00
+========================================
+Ознака       Име      Стопа        Порез
+Ђ           О-ПДВ   20,00%        184,50
+----------------------------------------
+Укупан износ пореза:              184,50
+========================================
+ПФР време:          26.05.2026. 18:19:31
+ПФР број рачуна: K8NH2BHV-K8NH2BHV-20498
+Бројач рачуна:             20474/20498ПП
+========================================<br/><img src=data:image/gif;base64,R0lGODlhAQABAAAAACw= width='250' height='250'/>
+======== КРАЈ ФИСКАЛНОГ РАЧУНА =========</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+        <div class="row">
+            <div class="col-lg-12 text-center centered">
+                <button type="button" class="btn btn-success mb-1" onclick="OnPrintClicked();">&#x41F;&#x440;&#x435;&#x433;&#x43B;&#x435;&#x434; &#x437;&#x430; &#x448;&#x442;&#x430;&#x43C;&#x43F;&#x443;</button>
+                <div style="display: none">
+                    
+<div id="PrintInvoice" class="panel-body" style="margin:0;">
+    <div style="margin:0;">
+        <div style="width:100%;overflow:hidden" class="row">
+            <div style="width:45%;float:left;">
+                <p style="border: none; text-align:left;margin:0px;padding:0px;"><strong>&#x41F;&#x418;&#x411;:</strong>&nbsp;<span class="badge" style="background-color: #fff;">100049486</span></p>
+                <hr />
+                    <p style="border: none; text-align:left;margin:0px;padding:0px;"><strong>&#x41F;&#x440;&#x435;&#x434;&#x443;&#x437;&#x435;&#x45B;&#x435;:</strong>&nbsp;<span class="badge" style="background-color: #fff;white-space: pre-wrap;line-height: 1.3; line-break: anywhere;">dm drogerie markt doo Beograd</span></p>
+                    <hr />
+                    <p style="border: none; text-align:left;margin:0px;padding:0px;"><strong>&#x41C;&#x435;&#x441;&#x442;&#x43E; &#x43F;&#x440;&#x43E;&#x434;&#x430;&#x458;&#x435;:</strong>&nbsp;<span class="badge" style="background-color: #fff;white-space: pre-wrap;line-height: 1.3; line-break: anywhere;">J017</span></p>
+                    <hr />
+                    <p style="border: none; text-align:left;margin:0px;padding:0px;"><strong>&#x410;&#x434;&#x440;&#x435;&#x441;&#x430;:</strong>&nbsp;<span class="badge" style="background-color: #fff;white-space: pre-wrap;line-height: 1.3; line-break: anywhere;">&#x411;&#x420;&#x410;&#x40B;&#x415; &#x420;&#x418;&#x411;&#x41D;&#x418;&#x41A;&#x410;&#x420; 29   </span></p>
+                    <hr />
+                    <p style="border: none; text-align:left;margin:0px;padding:0px;"><strong>&#x41E;&#x43F;&#x448;&#x442;&#x438;&#x43D;&#x430;:</strong>&nbsp;<span class="badge" style="background-color: #fff;white-space: pre-wrap;line-height: 1.3; line-break: anywhere;">&#x41D;&#x43E;&#x432;&#x438; &#x421;&#x430;&#x434;</span></p>
+                    <hr />
+                <p style="border: none; text-align:left;margin:0px;padding:0px;"><strong>&#x41A;&#x430;&#x441;&#x438;&#x440;:</strong>&nbsp;<span class="badge" style="background-color: #fff;white-space: pre-wrap;line-height: 1.3; line-break: anywhere;">203854</span></p>
+                <hr />
+                <p style="border: none; text-align:left;margin:0px;padding:0px;"><strong>&#x418;&#x414; &#x43A;&#x443;&#x43F;&#x446;&#x430;:</strong>&nbsp;<span class="badge" style="background-color: #fff;white-space: pre-wrap;line-height: 1.3; line-break: anywhere;"></span></p>
+                <hr />
+                <p style="border: none; text-align:left;margin:0px;padding:0px;"><strong>&#x41E;&#x43F;&#x446;&#x438;&#x43E;&#x43D;&#x43E; &#x43F;&#x43E;&#x459;&#x435; &#x43A;&#x443;&#x43F;&#x446;&#x430;:</strong>&nbsp;<span class="badge" style="background-color: #fff;white-space: pre-wrap;line-height: 1.3; line-break: anywhere;"></span></p>
+                <hr />
+                <p style="border: none; text-align:left;margin:0px;padding:0px;"><strong>&#x415;&#x421;&#x418;&#x420; &#x431;&#x440;&#x43E;&#x458;:</strong>&nbsp;<span class="badge" style="background-color: #fff;white-space: pre-wrap;line-height: 1.3; line-break: anywhere;">962/23</span></p>
+                <hr />
+                <p style="border: none; text-align:left;margin:0px;padding:0px;">
+                    <strong>&#x415;&#x421;&#x418;&#x420; &#x432;&#x440;&#x435;&#x43C;&#x435;:</strong>&nbsp;
+                </p>
+                <hr />
+            </div>
+            <div style="width:54%;float:right; align-content:flex-end;">
+                <div>
+                    <div style="width:100%;display: inline-block;">
+                        <div style="width:55%;float:left;text-align:left;">
+                            <br />
+                            <strong style="margin-bottom:0px;">
+                                &#x411;&#x440;&#x43E;&#x458; &#x440;&#x430;&#x447;&#x443;&#x43D;&#x430;:
+                            </strong>
+                                <h4 style="margin-top:0px;">K8NH2BHV-K8NH2BHV-20498</h4>
+
+                                <h4>&#x424;&#x418;&#x421;&#x41A;&#x410;&#x41B;&#x41D;&#x418; &#x420;&#x410;&#x427;&#x423;&#x41D;</h4>
+                        </div>
+                        <div style="width:45%;float:right">
+                            <br /><img class='QR_img' alt='' src=data:image/gif;base64,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 width='169' height='169' />
+                        </div>
+                    </div>
+                    <div style="width:100%;display: inline-block;">
+                        <hr />
+                        <table style="margin-left:0; margin-right:auto;">
+                            <tbody>
+                                <tr>
+                                        <td><strong>&#x417;&#x430; &#x443;&#x43F;&#x43B;&#x430;&#x442;&#x443;:</strong></td>
+                                    <td style="padding-left: 20px;">1.107,00</td>
+                                </tr>
+                                 <tr data-bind="if: Specifications().length > 0">
+                                       <td><strong>&#x41F;&#x43E;&#x440;&#x435;&#x437; &#x443;&#x43A;&#x443;&#x43F;&#x43D;&#x43E;:</strong></td>
+                                       <td style="padding-left:20px;" data-bind="decimalAsText: TotalTax"></td>
+                                 </tr>
+                                    <tr>
+                                        <td><strong>&#x41D;&#x430;&#x447;&#x438;&#x43D; &#x43F;&#x43B;&#x430;&#x45B;&#x430;&#x45A;&#x430;:</strong></td>
+                                        <td style="padding-left: 20px;">
+
+                                                <span>&#x41F;&#x43B;&#x430;&#x442;&#x43D;&#x430; &#x43A;&#x430;&#x440;&#x442;&#x438;&#x446;&#x430;</span>
+                                        </td>
+                                    </tr>
+                                <tr>
+                                    <td><strong>&#x412;&#x440;&#x441;&#x442;&#x430; &#x440;&#x430;&#x447;&#x443;&#x43D;&#x430;:</strong></td>
+                                    <td style="padding-left:20px;">&#x41F;&#x440;&#x43E;&#x43C;&#x435;&#x442; &#x41F;&#x440;&#x43E;&#x434;&#x430;&#x458;&#x430;</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>&#x412;&#x440;&#x435;&#x43C;&#x435; &#x43D;&#x430; &#x431;&#x435;&#x437;&#x431;&#x435;&#x434;&#x43D;&#x43E;&#x441;&#x43D;&#x43E;&#x43C; &#x435;&#x43B;&#x435;&#x43C;&#x435;&#x43D;&#x442;&#x443;:</strong></td>
+                                    <td style="padding-left:20px;">26.5.2026. 18:19:31</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>&#x411;&#x440;&#x43E;&#x458;&#x430;&#x447; &#x440;&#x430;&#x447;&#x443;&#x43D;&#x430;:</strong></td>
+                                    <td style="padding-left:20px;">20474/20498&#x41F;&#x41F;</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+        <br />
+
+            <div style="width:100%;margin-top: 30px" data-bind="if: Specifications().length > 0">
+
+                <h3 style="text-align:left;padding-bottom:0;margin-bottom:0;">&#x421;&#x43F;&#x435;&#x446;&#x438;&#x444;&#x438;&#x43A;&#x430;&#x446;&#x438;&#x458;&#x430; &#x440;&#x430;&#x447;&#x443;&#x43D;&#x430;</h3>
+                <hr style="margin-top:0;padding-top:0;" />
+                <table style="width:100%;padding:0;">
+                    <thead style="font-size: 14px;">
+                        <tr>
+                            <th scope="col" style="border-bottom:solid DarkGray 1px;text-align:left;">&#x41D;&#x430;&#x437;&#x438;&#x432;</th>
+                            <th scope="col" style="border-bottom:solid DarkGray 1px;text-align:right;">&#x41A;&#x43E;&#x43B;&#x438;&#x447;&#x438;&#x43D;&#x430;</th>
+                            <th scope="col" style="border-bottom:solid DarkGray 1px;text-align:right;">&#x408;&#x435;&#x434;. &#x446;&#x435;&#x43D;&#x430; &#x441;&#x430; &#x41F;&#x414;&#x412;</th>
+                            <th scope="col" style="border-bottom:solid DarkGray 1px;text-align:right;">&#x423;&#x43A;&#x443;&#x43F;&#x43D;&#x430; &#x446;&#x435;&#x43D;&#x430;</th>
+                            <th scope="col" style="border-bottom:solid DarkGray 1px;text-align:right;">&#x41E;&#x441;&#x43D;&#x43E;&#x432;&#x438;&#x446;&#x430;</th>
+                            <th scope="col" style="border-bottom:solid DarkGray 1px;text-align:right;">&#x41F;&#x414;&#x412;</th>
+                            <th scope="col" style="border-bottom:solid DarkGray 1px;text-align:right;">&#x421;&#x442;&#x43E;&#x43F;&#x430;</th>
+                        </tr>
+                    </thead>
+                    <tbody style="font-size: 12px;" data-bind="foreach: Specifications">
+                        <tr>
+                            <td style="border-bottom: solid DarkGray 1px; text-align: left;" data-bind="text: Name"></td>
+                            <td style="border-bottom: solid DarkGray 1px; text-align: right;" data-bind="decimalAsText: Quantity"></td>
+                            <td style="border-bottom: solid DarkGray 1px; text-align: right;" data-bind="decimalAsText: UnitPrice"></td>
+                            <td style="border-bottom: solid DarkGray 1px; text-align: right;" data-bind="decimalAsText: Total"></td>
+                            <td style="border-bottom: solid DarkGray 1px; text-align: right;" data-bind="decimalAsText: TaxBaseAmount"></td>
+                            <td style="border-bottom: solid DarkGray 1px; text-align: right;" data-bind="decimalAsText: VatAmount"></td>
+                            <td style="border-bottom: solid DarkGray 1px; text-align: right;" data-bind="text: Label"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+    </div>
+</div>
+
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-lg-12 text-center centered">
+                <a target="_blank" href='/CustomerReport/K8NH2BHV-K8NH2BHV-20498' class="btn btn-danger">       <i class="glyphicon glyphicon-flag"></i> &#x41F;&#x440;&#x438;&#x458;&#x430;&#x432;&#x438;&#x442;&#x435; &#x43E;&#x432;&#x430;&#x458; &#x440;&#x430;&#x447;&#x443;&#x43D;</a>
+            </div>
+        </div>
+<input name="" type="hidden" value="" /></form>
+
+
+            <hr />
+            <footer>
+                <p class="text-center"><strong>Copyright</strong> <a href="https://www.dti.rs">Data Tech International</a> &copy; 2012-2026 |  &#x412;&#x435;&#x440;&#x437;&#x438;&#x458;&#x430; : 3.5.32.0</p>
+            </footer>
+        </div>
+    </div>
+</body>
+
+</html>

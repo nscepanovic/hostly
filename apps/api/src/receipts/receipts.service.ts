@@ -7,7 +7,7 @@ import { env } from '../config/env';
 import { InjectDb, type Db } from '../db/db.module';
 import { receiptItems, receipts, reservations, type ReceiptItemRow, type ReceiptRow } from '../db/schema';
 import { RealtimeService } from '../realtime/realtime.service';
-import { decodeVl, parseSufLink, ReceiptLinkError, scrapeSuf } from './suf';
+import { decodeVl, parseSufLink, ReceiptLinkError, scrapeSuf, SufRejectedError } from './suf';
 
 /** Background attempts to fetch items before a receipt stays "failed" (retry still possible by hand). */
 const MAX_ATTEMPTS = 8;
@@ -145,7 +145,7 @@ export class ReceiptsService {
       this.log.warn(`Receipt ${row.invoiceNumber}: ${message}`);
       await this.db
         .update(receipts)
-        .set({ status: 'failed', error: message.slice(0, 500), attempts: row.attempts + 1 })
+        .set({ status: 'failed', error: message.slice(0, 500), attempts: err instanceof SufRejectedError ? MAX_ATTEMPTS : row.attempts + 1 })
         .where(eq(receipts.id, id));
     }
   }

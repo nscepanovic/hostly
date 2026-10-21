@@ -15,6 +15,8 @@ export const SUF_HOST = 'suf.purs.gov.rs';
 export const SUF_ORIGIN = `https://${SUF_HOST}`;
 
 export class ReceiptLinkError extends Error {}
+/** The tax site rejects this receipt (4xx); retrying will not help. */
+export class SufRejectedError extends Error {}
 
 const INVOICE_TYPES = ['normal', 'proforma', 'copy', 'training', 'advance'] as const;
 export type SufInvoiceType = (typeof INVOICE_TYPES)[number];
@@ -69,9 +71,13 @@ export function parseSufLink(text: string): { vl: string; url: string } {
     throw new ReceiptLinkError('Not a fiscal receipt link');
   }
   if (u.hostname.toLowerCase() !== SUF_HOST) throw new ReceiptLinkError('Not a Serbian fiscal receipt (suf.purs.gov.rs) link');
-  // A "+" left unencoded in the QR becomes a space after URL decoding; base64 has no spaces.
-  const vl = u.searchParams.get('vl')?.replace(/ /g, '+');
-  if (!vl || !/^[A-Za-z0-9+/=_-]+$/.test(vl) || vl.length > 4000) throw new ReceiptLinkError('The link has no receipt data');
+  // A "+" left unencoded in the QR becomes a space after URL decoding; anything
+  // after the base64 padding is a copy/paste leftover (the tax site rejects it).
+  const vl = u.searchParams
+    .get('vl')
+    ?.replace(/ /g, '+')
+    .replace(/^([A-Za-z0-9+/]+={1,2}).+$/, '$1');
+  if (!vl || !/^[A-Za-z0-9+/]+={0,2}$/.test(vl) || vl.length % 4 !== 0 || vl.length > 4000) throw new ReceiptLinkError('The link has no valid receipt data');
   return { vl, url: `${SUF_ORIGIN}/v/?vl=${encodeURIComponent(vl)}` };
 }
 
@@ -144,10 +150,17 @@ export function parseAmount(s: string): number {
   return n;
 }
 
-/** "Kafa espresso (kom)" -> name "Kafa espresso", unit "kom". */
+/**
+ * Splits the unit off an item name. Both styles appear on receipts:
+ * "Kafa espresso (kom)" and "Name/unit" ("kajsija kg/" = no unit after the slash).
+ */
 export function splitUnit(raw: string): { name: string; unit: string | null } {
-  const m = raw.trim().match(/^(.*?)\s*\(([\p{L}.]{1,6})\)$/u);
-  return m && m[1] ? { name: m[1].trim(), unit: m[2].toLowerCase() } : { name: raw.trim(), unit: null };
+  const t = raw.trim();
+  const paren = t.match(/^(.*?)\s*\(([\p{L}.]{1,6})\)$/u);
+  if (paren && paren[1]) return { name: paren[1].trim(), unit: paren[2].toLowerCase() };
+  const slash = t.match(/^(.*\S)\s*\/([\p{L}.]{0,6})$/u);
+  if (slash) return { name: slash[1].trim(), unit: slash[2] ? slash[2].toLowerCase() : null };
+  return { name: t, unit: null };
 }
 
 const PAYMENT_LABELS: Array<[RegExp, PaymentMethod]> = [
@@ -172,19 +185,25 @@ export function parseJournal(journal: string): Pick<SufDetails, 'items' | 'payme
   const payments: SufDetails['payments'] = [];
   const header = lines.findIndex((l) => /^\s*(назив|naziv)\s+(цена|cena)\s+(кол|kol)/i.test(l));
   if (header >= 0) {
-    let name: string[] = [];
+    // The receipt is a fixed-width column; a long name fills the line to the
+    // edge and continues on the next one, often mid-word ("…LETNJA KO" + "M").
+    const width = Math.max(...lines.slice(header, header + 3).map((l) => l.replace(/\r$/, '').length));
+    let name = '';
+    let wrapped = false;
     for (let i = header + 1; i < lines.length; i++) {
-      const line = lines[i];
+      const line = lines[i].replace(/\r$/, '');
       if (/^\s*-{5,}/.test(line) || /^\s*={5,}/.test(line)) break;
       const nums = line.match(/^\s*(-?[\d.]+,\d{2})\s+(-?[\d.,]+)\s+(-?[\d.]+,\d{2})\s*$/);
-      if (nums && name.length) {
-        const full = name.join(' ').replace(/\s+/g, ' ').trim();
+      if (nums && name) {
+        const full = name.replace(/\s+/g, ' ').trim();
         const label = full.match(/\s*\(([\p{L}])\)$/u);
         const { name: n, unit } = splitUnit(label ? full.slice(0, label.index) : full);
         items.push({ name: n, unit, unitPrice: parseAmount(nums[1]), quantity: parseAmount(nums[2]), total: parseAmount(nums[3]), vatLabel: label?.[1] ?? null, vatRate: null, gtin: null });
-        name = [];
+        name = '';
+        wrapped = false;
       } else if (line.trim()) {
-        name.push(line.trim());
+        name += (name && !wrapped ? ' ' : '') + line.trim();
+        wrapped = line.length >= width && !/\s$/.test(line);
       }
     }
   }
@@ -255,6 +274,7 @@ export async function scrapeSuf(url: string, fetchImpl: Fetch = fetch): Promise<
     signal: AbortSignal.timeout(TIMEOUT_MS),
   });
   if (new URL(pageRes.url || url).hostname !== SUF_HOST) throw new Error('Unexpected redirect');
+  if (pageRes.status >= 400 && pageRes.status < 500) throw new SufRejectedError(`The tax office does not recognise this receipt (HTTP ${pageRes.status})`);
   if (!pageRes.ok) throw new Error(`Verification page returned ${pageRes.status}`);
   const page = parseVerificationPage(await readText(pageRes));
   const fromJournal = page.journal ? parseJournal(page.journal) : { items: [], payments: [] };

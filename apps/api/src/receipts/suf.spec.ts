@@ -52,6 +52,9 @@ describe('receipt text parsing', () => {
     expect(parseAmount('-360,00')).toBe(-360);
     expect(splitUnit('Usluge autoservisa (kom)')).toEqual({ name: 'Usluge autoservisa', unit: 'kom' });
     expect(splitUnit('Coca-Cola 0,25 l')).toEqual({ name: 'Coca-Cola 0,25 l', unit: null });
+    expect(splitUnit('Mleko 1l/kom')).toEqual({ name: 'Mleko 1l', unit: 'kom' });
+    expect(splitUnit('kajsija kg/')).toEqual({ name: 'kajsija kg', unit: null });
+    expect(splitUnit('trepavice 274/403')).toEqual({ name: 'trepavice 274/403', unit: null });
   });
 
   // Layout of the printed fiscal receipt (journal) defined by the e-fiscalization rules.
@@ -117,5 +120,45 @@ describe('real verification page (suf.purs.gov.rs, fetched 21.10.2026)', () => {
     const { items, payments } = parseJournal(parseVerificationPage(html).journal!);
     expect(items).toEqual([{ name: 'Usluge autoservisa', unit: 'kom', unitPrice: 98100, quantity: 1, total: 98100, vatLabel: 'А', vatRate: null, gtin: null }]);
     expect(payments).toEqual([{ method: 'cash', amount: 98100 }]);
+  });
+});
+
+describe('more real receipts (suf.purs.gov.rs, fetched 21.10.2026)', () => {
+  const page = (name: string) => parseVerificationPage(readFileSync(join(__dirname, '__fixtures__', `${name}.html`), 'utf8'));
+  const items = (name: string) => parseJournal(page(name).journal!);
+
+  it('joins item names the receipt wrapped mid-word at its 40-character width', () => {
+    const r = items('suf-wrapped-names');
+    expect(r.items.map((i) => i.name)).toEqual([
+      '79032311 RUKAVICE ZAŠTITNE 10" PAR',
+      'K525 TECNOST ZA VETROBRANE 5/1 LETNJA KOM',
+      '78200175 REZERVNA GLAVA ZA TRIMER BENZINSKI KOM',
+    ]);
+    expect(r.items.reduce((s, i) => s + i.total, 0)).toBe(1755);
+    expect(r.payments).toEqual([{ method: 'card', amount: 1755 }]);
+  });
+
+  it('reads weighed items and "name/unit" names', () => {
+    const r = items('suf-receipt-2');
+    expect(r.items[0]).toMatchObject({ name: 'BANANA 1KG', quantity: 0.97, unitPrice: 199, total: 193.03 });
+    expect(r.items).toHaveLength(7);
+    expect(Math.round(r.items.reduce((s, i) => s + i.total, 0) * 100) / 100).toBe(1684.78);
+    expect(page('suf-receipt-2')).toMatchObject({ sellerTin: '101663486', invoiceNumber: '4RRG9E5M-4RRG9E5M-133168' });
+  });
+
+  it('reads card payments', () => {
+    const r = items('suf-card-3-items');
+    expect(r.items.map((i) => [i.name, i.total])).toEqual([
+      ['BIOBAZA roll on GREEN TEA 50ml', 459],
+      ['Killys PasteLOVE sudjer', 349],
+      ['s-he veštačke trepav. 274/403', 299],
+    ]);
+    expect(r.payments).toEqual([{ method: 'card', amount: 1107 }]);
+  });
+});
+
+describe('pasted links', () => {
+  it('ignores characters pasted after the base64 padding', () => {
+    expect(parseSufLink(`${REAL_LINK}l`).vl).toBe(parseSufLink(REAL_LINK).vl);
   });
 });
