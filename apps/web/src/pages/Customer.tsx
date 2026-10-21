@@ -10,6 +10,7 @@ import { fmtDateTime } from '@/lib/time';
 import { useUi } from '@/store/ui';
 import { CustomerBadge } from '@/features/reservation/ReservationCard';
 import { CustomerFields } from '@/features/customers/CustomerForm';
+import { GuestInsights } from '@/features/customers/GuestInsights';
 
 interface Visit {
   id: string;
@@ -64,6 +65,7 @@ export default function CustomerPage() {
             <Stat label={t('customers.noShows')} value={c.stats.noShows} warn={c.stats.noShows > 0} />
             <Stat label={t('customers.averageSpend')} value={(c.averageSpend ?? avgSpend)?.toLocaleString(i18n.language) ?? '—'} />
           </div>
+          <GuestInsights customerId={c.id} />
           <h3 className="mb-2 font-semibold">{t('customers.history')}</h3>
           {!visits.data?.length ? (
             <p className="text-muted">{t('customers.noHistory')}</p>

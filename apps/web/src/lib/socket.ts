@@ -52,6 +52,11 @@ export function useRealtime(enabled: boolean) {
         void qc.invalidateQueries({ queryKey: qk.customers });
         void qc.invalidateQueries({ queryKey: ['customer'] });
       },
+      'receipt.updated': () => {
+        void qc.invalidateQueries({ queryKey: ['receipts'] });
+        void qc.invalidateQueries({ queryKey: ['analytics'] });
+        invalidateReservations();
+      },
       'settings.updated': () => void qc.invalidateQueries({ queryKey: qk.restaurant }),
     };
     for (const event of Object.values(WS_EVENTS)) {

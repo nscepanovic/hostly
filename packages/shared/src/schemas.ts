@@ -301,3 +301,14 @@ export const availabilityQuerySchema = z.object({
   date: isoDate,
   covers: z.coerce.number().int().min(1),
 });
+
+export const receiptScanSchema = z.object({
+  /** Scanned QR text or a pasted verification link. */
+  url: z.string().trim().min(10).max(5000),
+  reservationId: z.uuid().nullable().optional(),
+});
+export type ReceiptScanInput = z.infer<typeof receiptScanSchema>;
+
+export const receiptAssignSchema = z.object({ reservationId: z.uuid().nullable() });
+
+export const analyticsQuerySchema = z.object({ from: isoDate, to: isoDate });

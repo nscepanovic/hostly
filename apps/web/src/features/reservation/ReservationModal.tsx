@@ -35,6 +35,9 @@ import { TablePicker } from './TablePicker';
 import { DurationPicker, DURATION_CHIPS } from './DurationPicker';
 import { useCustomerLookup } from './useCustomerLookup';
 import { useGuestSuggest } from './GuestSuggest';
+import { ReservationReceipts } from '../receipts/ReservationReceipts';
+import { useReceiptUi } from '@/store/receipts';
+import { guestName } from '@/lib/day';
 
 export interface FormState {
   status: ReservationDto['status'];
@@ -304,6 +307,8 @@ function ReservationForm({ id, draft, onClose }: { id?: string; draft: Reservati
       qc.setQueryData(qk.reservation(r.id), r);
       if (draft.waitingEntryId) void api.patch(`/waiting/${draft.waitingEntryId}`, { status: 'seated' });
       toast.success(t('reservation.created'));
+      // Finished from the form: same receipt offer as from the floor plan.
+      if (r.status === 'completed' && existing.data?.status !== 'completed') useReceiptUi.getState().ask({ reservationId: r.id, guestName: guestName(r) });
       onClose();
     },
     onError: (err) => {
@@ -496,6 +501,10 @@ function ReservationForm({ id, draft, onClose }: { id?: string; draft: Reservati
           )}
           {linkedCustomer.notes && <span className="w-full text-muted italic">{linkedCustomer.notes}</span>}
         </div>
+      )}
+
+      {id && (form.status === 'seated' || form.status === 'completed') && (
+        <ReservationReceipts reservationId={id} guestName={[form.lastName, form.firstName].filter(Boolean).join(' ') || undefined} />
       )}
 
       {/* Tables */}

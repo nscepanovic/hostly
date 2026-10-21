@@ -62,3 +62,9 @@ export const STATUS_TRANSITIONS: Record<ReservationStatus, readonly ReservationS
 export function canTransition(from: ReservationStatus, to: ReservationStatus): boolean {
   return from === to || STATUS_TRANSITIONS[from].includes(to);
 }
+
+export const RECEIPT_STATUSES = ['pending', 'ready', 'failed'] as const;
+export type ReceiptStatus = (typeof RECEIPT_STATUSES)[number];
+export type ReceiptTransactionType = 'sale' | 'refund';
+export const PAYMENT_METHODS = ['cash', 'card', 'transfer', 'check', 'voucher', 'instant', 'other'] as const;
+export type PaymentMethod = (typeof PAYMENT_METHODS)[number];

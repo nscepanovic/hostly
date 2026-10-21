@@ -143,6 +143,35 @@ The trade-offs are deliberate. Blind indexes reveal equality: someone with datab
 - **Changing `BLIND_INDEX_KEY`:** the next `pnpm db:migrate` rebuilds all search indexes.
 - `pnpm db:migrate` also encrypts any data still stored in plaintext. Upgrading an existing database is therefore one command.
 
+## Fiscal receipts and analytics (Serbia)
+
+When a table finishes, staff are offered **Scan receipt**. They can also do it
+from the table popover or the reservation (including later, from history), or
+from Analytics without a guest and link it afterwards. The camera reads the QR
+code on the fiscal receipt; a photo or the pasted link works too.
+
+- **Offline part:** the QR link (`https://suf.purs.gov.rs/v/?vl=…`) already
+  contains the invoice number, total, time and sale/refund (`receipts/suf.ts`,
+  `decodeVl`). This is saved immediately, even when the tax site is down.
+- **Online part:** line items come from the public verification page and its
+  `specifications` endpoint, with the printed receipt text (journal) as a
+  fallback; payment methods come from the journal. Plain parsing, no AI.
+  Failed fetches are retried every 10 minutes for 7 days.
+- Copies, pro-forma and training receipts are refused; the same receipt can't
+  be scanned twice; refunds are stored negative so totals are always net.
+- A reservation's spend is the sum of its receipts. Guest profiles show what
+  the guest orders and spends; **Analytics** (owner) shows revenue by day, hour
+  and weekday, best sellers, best sellers per shift and payment methods.
+
+Requirements: the API server must reach `https://suf.purs.gov.rs`, and the
+camera needs HTTPS (or localhost). To check a real receipt against the live site:
+
+```bash
+pnpm --filter @hostly/api receipt:check "<link from the QR code>" [--save page.html]
+```
+
+`pnpm db:seed` adds a month of demo receipts (seller "DEMO") so Analytics has data.
+
 ## Languages
 
 Serbian (default for staff) and English ship today. Everything language-specific

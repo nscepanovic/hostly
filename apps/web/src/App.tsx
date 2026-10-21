@@ -12,6 +12,8 @@ import { LoginPage } from './pages/Login';
 import { FloorPage } from './pages/Floor';
 import { LiveNotifications } from './features/LiveNotifications';
 import { ReservationModal } from './features/reservation/ReservationModal';
+import { ReceiptPrompt } from './features/receipts/ReceiptPrompt';
+import { ReceiptScanner } from './features/receipts/ReceiptScanner';
 
 const ReservationsPage = lazy(() => import('./pages/Reservations'));
 const CustomersPage = lazy(() => import('./pages/Customers'));
@@ -20,6 +22,7 @@ const TimelinePage = lazy(() => import('./pages/Timeline'));
 const EditorPage = lazy(() => import('./pages/Editor'));
 const OnlinePage = lazy(() => import('./pages/Online'));
 const SettingsPage = lazy(() => import('./pages/Settings'));
+const AnalyticsPage = lazy(() => import('./pages/Analytics'));
 const BookPage = lazy(() => import('./pages/public/Book'));
 const GuestReservationPage = lazy(() => import('./pages/public/GuestReservation'));
 const AdminApp = lazy(() => import('./admin/AdminApp'));
@@ -61,6 +64,8 @@ function Protected() {
     <>
       <AppShell user={me} />
       <ReservationModal />
+      <ReceiptScanner />
+      <ReceiptPrompt />
       <LiveNotifications />
     </>
   );
@@ -91,6 +96,7 @@ export function App() {
               <Route path="customers" element={<CustomersPage />} />
               <Route path="customers/:id" element={<CustomerPage />} />
               <Route path="timeline" element={<TimelinePage />} />
+              <Route path="analytics" element={<OwnerOnly><AnalyticsPage /></OwnerOnly>} />
               <Route path="online" element={<OwnerOnly><OnlinePage /></OwnerOnly>} />
               <Route path="settings" element={<OwnerOnly><SettingsPage /></OwnerOnly>} />
             </Route>

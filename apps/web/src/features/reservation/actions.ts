@@ -4,6 +4,8 @@ import type { ReservationDto, ReservationStatus, TableSuggestion } from '@hostly
 import { api, errorMessage } from '@/lib/api';
 import { qk } from '@/lib/queries';
 import { toast } from '@/components/ui/Toast';
+import { guestName } from '@/lib/day';
+import { useReceiptUi } from '@/store/receipts';
 
 /** Patches every cached day list with a changed reservation so the UI updates before the refetch. */
 function useApplyReservation() {
@@ -30,6 +32,8 @@ export function useReservationActions() {
     onSuccess: (r) => {
       apply(r);
       toast.success(`${t(`status.${r.status}`)} · ${r.lastName ?? r.firstName ?? ''}`);
+      // The guest has paid: offer to scan the fiscal receipt now.
+      if (r.status === 'completed') useReceiptUi.getState().ask({ reservationId: r.id, guestName: guestName(r) });
     },
     onError,
   });

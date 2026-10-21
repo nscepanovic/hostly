@@ -18,6 +18,9 @@ import {
 } from 'drizzle-orm/pg-core';
 import type {
   BrandingImage,
+  ReceiptPayment,
+  ReceiptStatus,
+  ReceiptTransactionType,
   CustomerType,
   Language,
   MessageChannel,
@@ -106,6 +109,60 @@ export const restaurantImages = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [primaryKey({ columns: [t.restaurantId, t.kind] })],
+);
+
+/** Fiscal receipts scanned by staff, optionally linked to a reservation (and so to a guest). */
+export const receipts = pgTable(
+  'receipts',
+  {
+    id: id(),
+    restaurantId: restaurantRef(),
+    reservationId: uuid('reservation_id').references(() => reservations.id, { onDelete: 'set null' }),
+    /** Country scheme; 'rs-suf' = Serbian fiscal receipt (suf.purs.gov.rs). */
+    scheme: text('scheme').notNull().default('rs-suf'),
+    invoiceNumber: text('invoice_number').notNull(),
+    verificationUrl: text('verification_url').notNull(),
+    issuedAt: timestamp('issued_at', { withTimezone: true }).notNull(),
+    total: numeric('total', { precision: 14, scale: 2, mode: 'number' }).notNull(),
+    transactionType: text('transaction_type').$type<ReceiptTransactionType>().notNull(),
+    sellerTin: text('seller_tin'),
+    sellerName: text('seller_name'),
+    payments: jsonb('payments').$type<ReceiptPayment[]>().notNull().default([]),
+    journal: text('journal'),
+    /** pending = items not fetched yet, ready, failed (retried in the background). */
+    status: text('status').$type<ReceiptStatus>().notNull().default('pending'),
+    error: text('error'),
+    attempts: integer('attempts').notNull().default(0),
+    fetchedAt: timestamp('fetched_at', { withTimezone: true }),
+    createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex('receipts_invoice_uq').on(t.restaurantId, t.invoiceNumber),
+    index('receipts_restaurant_issued_idx').on(t.restaurantId, t.issuedAt),
+    index('receipts_reservation_idx').on(t.reservationId),
+  ],
+);
+
+export const receiptItems = pgTable(
+  'receipt_items',
+  {
+    id: id(),
+    receiptId: uuid('receipt_id')
+      .notNull()
+      .references(() => receipts.id, { onDelete: 'cascade' }),
+    restaurantId: restaurantRef(),
+    position: integer('position').notNull(),
+    name: text('name').notNull(),
+    unit: text('unit'),
+    quantity: numeric('quantity', { precision: 14, scale: 3, mode: 'number' }).notNull(),
+    unitPrice: numeric('unit_price', { precision: 14, scale: 2, mode: 'number' }).notNull(),
+    total: numeric('total', { precision: 14, scale: 2, mode: 'number' }).notNull(),
+    vatLabel: text('vat_label'),
+    vatRate: numeric('vat_rate', { precision: 5, scale: 2, mode: 'number' }),
+    gtin: text('gtin'),
+  },
+  (t) => [index('receipt_items_receipt_idx').on(t.receiptId), index('receipt_items_restaurant_idx').on(t.restaurantId)],
 );
 
 export const users = pgTable(
@@ -360,3 +417,6 @@ export type ReservationRow = typeof reservations.$inferSelect;
 export type WaitingRow = typeof waitingEntries.$inferSelect;
 export type TagRow = typeof tags.$inferSelect;
 export type MessageRow = typeof messages.$inferSelect;
+
+export type ReceiptRow = typeof receipts.$inferSelect;
+export type ReceiptItemRow = typeof receiptItems.$inferSelect;

@@ -1,4 +1,4 @@
-import type { ReservationDto, WaitingEntryDto } from './types';
+import type { ReceiptDto, ReservationDto, WaitingEntryDto } from './types';
 
 /** Socket.IO event names. Clients join one room per restaurant on connect. */
 export const WS_EVENTS = {
@@ -12,6 +12,7 @@ export const WS_EVENTS = {
   floorPlanUpdated: 'floorplan.updated',
   customerUpdated: 'customer.updated',
   settingsUpdated: 'settings.updated',
+  receiptUpdated: 'receipt.updated',
 } as const;
 
 export interface WsEventPayloads {
@@ -26,4 +27,6 @@ export interface WsEventPayloads {
   'floorplan.updated': { areaId?: string };
   'customer.updated': { id: string };
   'settings.updated': Record<string, never>;
+  /** Scanned, details fetched, reassigned or deleted (receipt omitted). */
+  'receipt.updated': { id: string; receipt?: ReceiptDto };
 }

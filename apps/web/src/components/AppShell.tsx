@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import {
   CalendarDays,
+  ChartColumn,
   ChevronLeft,
   ChevronRight,
   CircleHelp,
@@ -56,6 +57,7 @@ export function AppShell({ user }: { user: UserDto }) {
     { to: '/reservations', icon: <List size={24} />, label: t('nav.list') },
     { to: '/customers', icon: <Users size={24} />, label: t('nav.customers') },
     { to: '/timeline', icon: <GanttChart size={24} />, label: t('nav.timeline') },
+    { to: '/analytics', icon: <ChartColumn size={24} />, label: t('nav.analytics'), ownerOnly: true },
     { to: '/online', icon: <Globe size={24} />, label: t('nav.online'), ownerOnly: true },
     { to: '/settings', icon: <Settings size={24} />, label: t('nav.settings'), ownerOnly: true },
   ].filter((i) => !i.ownerOnly || user.role === 'owner');

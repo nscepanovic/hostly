@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DateTime } from 'luxon';
-import { Armchair, Ban, CheckCheck, Pencil, MoveRight, Plus, Undo2, UserX, Footprints } from 'lucide-react';
+import { Armchair, Ban, CheckCheck, Pencil, MoveRight, Plus, ReceiptText, Undo2, UserX, Footprints } from 'lucide-react';
 import { formatPhone, type ReservationDto, type ReservationStatus, type TableDto } from '@hostly/shared';
 import { Modal } from '@/components/ui/Modal';
 import { confirmDialog } from '@/components/ui/Confirm';
@@ -9,6 +9,7 @@ import { guestName } from '@/lib/day';
 import { fmtTime } from '@/lib/time';
 import type { TableStatus } from '@/lib/tableState';
 import { useUi } from '@/store/ui';
+import { useReceiptUi } from '@/store/receipts';
 import { CustomerBadge } from '../reservation/ReservationCard';
 import { useReservationActions } from '../reservation/actions';
 
@@ -111,6 +112,16 @@ export function TablePopover({
           </>
         )}
         {r?.status === 'completed' && <Action icon={<Undo2 size={22} />} label={t('actions.reopen')} onClick={() => set('seated')} />}
+        {(r?.status === 'seated' || r?.status === 'completed') && (
+          <Action
+            icon={<ReceiptText size={22} />}
+            label={t('receipts.scan')}
+            onClick={() => {
+              useReceiptUi.getState().openScanner({ reservationId: r.id, guestName: guestName(r) });
+              onClose();
+            }}
+          />
+        )}
         {r && (
           <>
             <Action

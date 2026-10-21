@@ -15,6 +15,7 @@ import { env } from '../config/env';
 import { createDb, type Db } from './client';
 import * as s from './schema';
 import { createPlatformAdmin, createRestaurant } from './tenant';
+import { seedDemoSales } from './demo-sales';
 import { emailIndex } from '../common/crypto';
 import { customerIndexes } from '../customers/customer-indexes';
 
@@ -95,7 +96,8 @@ const CUSTOMERS: Array<[first: string, last: string | null, phone: string, type:
   ['Emma', 'Clarke', '+44 7700 900123', 'regular', { language: 'en', email: 'emma.clarke@example.com' }],
 ];
 
-export async function seed(db: Db, opts: { slug?: string; name?: string; password?: string; today?: DateTime } = {}) {
+/** `demoSales`: a month of receipts for analytics (dev only; tests leave it off). */
+export async function seed(db: Db, opts: { slug?: string; name?: string; password?: string; today?: DateTime; demoSales?: boolean } = {}) {
   const slug = opts.slug ?? process.env.SEED_SLUG ?? 'restoran';
   const password = opts.password ?? process.env.SEED_PASSWORD ?? 'hostly123';
   const timezone = 'Europe/Belgrade';
@@ -287,10 +289,11 @@ export async function seed(db: Db, opts: { slug?: string; name?: string; passwor
       ['Omar', 8, 'cancelled', null],
       ['Slađana', 15, 'completed', 3100],
     ];
+    const visits: Array<{ id: string; at: DateTime; covers: number }> = [];
     for (const [first, daysAgo, status, spend] of past) {
       const cust = c(first);
       const arrival = day.minus({ days: daysAgo }).set({ hour: 19 });
-      await tx.insert(s.reservations).values({
+      const [visit] = await tx.insert(s.reservations).values({
         restaurantId: rid,
         customerId: cust.id,
         firstName: cust.firstName,
@@ -307,7 +310,14 @@ export async function seed(db: Db, opts: { slug?: string; name?: string; passwor
         createdAt: arrival.minus({ days: 2 }).toJSDate(),
         seatedAt: status === 'completed' ? arrival.toJSDate() : null,
         completedAt: status === 'completed' ? arrival.plus({ hours: 2 }).toJSDate() : null,
-      });
+      }).returning({ id: s.reservations.id, covers: s.reservations.covers });
+      if (status === 'completed') visits.push({ id: visit.id, at: arrival, covers: visit.covers });
+    }
+
+    if (opts.demoSales ?? true) {
+      // Receipts replace the hand-typed spend of the past visits.
+      const spend = await seedDemoSales(tx, rid, day, visits);
+      for (const [id, total] of spend) await tx.update(s.reservations).set({ spend: total }).where(eq(s.reservations.id, id));
     }
 
     await tx.insert(s.waitingEntries).values([

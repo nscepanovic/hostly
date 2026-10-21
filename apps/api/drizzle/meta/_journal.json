@@ -50,6 +50,13 @@
       "when": 1792578114816,
       "tag": "0006_booking_branding",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792584612176,
+      "tag": "0007_receipts",
+      "breakpoints": true
     }
   ]
 }

@@ -1,4 +1,7 @@
 import type {
+  PaymentMethod,
+  ReceiptStatus,
+  ReceiptTransactionType,
   CustomerType,
   Language,
   MessageChannel,
@@ -323,4 +326,71 @@ export interface AdminRestaurantDetail extends AdminRestaurantRow {
   perDay: DailyPoint[];
   activity: AdminActivityDto[];
   failedMessages: AdminMessageDto[];
+}
+
+export interface ReceiptPayment {
+  method: PaymentMethod;
+  amount: number;
+}
+
+export interface ReceiptItemDto {
+  name: string;
+  unit: string | null;
+  quantity: number;
+  unitPrice: number;
+  total: number;
+  vatLabel: string | null;
+}
+
+export interface ReceiptDto {
+  id: string;
+  reservationId: string | null;
+  invoiceNumber: string;
+  verificationUrl: string;
+  issuedAt: string;
+  /** Positive for sales, negative for refunds. */
+  total: number;
+  transactionType: ReceiptTransactionType;
+  sellerName: string | null;
+  sellerTin: string | null;
+  payments: ReceiptPayment[];
+  status: ReceiptStatus;
+  error: string | null;
+  items: ReceiptItemDto[];
+  createdAt: string;
+  /** Guest and table of the linked reservation, for lists. */
+  guestName: string | null;
+  covers: number | null;
+}
+
+/** What a guest orders and spends, from their receipts. */
+export interface CustomerInsights {
+  receipts: number;
+  totalSpent: number;
+  averagePerVisit: number | null;
+  averagePerCover: number | null;
+  favoriteItems: Array<{ name: string; quantity: number; times: number; total: number }>;
+  payments: Array<{ method: PaymentMethod; amount: number }>;
+  lastReceipt: ReceiptDto | null;
+}
+
+export interface AnalyticsDto {
+  from: string;
+  to: string;
+  revenue: number;
+  receipts: number;
+  averageReceipt: number | null;
+  /** Covers of reservations that have a receipt, for revenue per guest. */
+  coversWithReceipt: number;
+  revenuePerCover: number | null;
+  /** Completed reservations that have at least one receipt (scan coverage). */
+  completedReservations: number;
+  completedWithReceipt: number;
+  byDay: Array<{ date: string; revenue: number; receipts: number }>;
+  byHour: Array<{ hour: number; revenue: number; receipts: number }>;
+  byWeekday: Array<{ weekday: number; revenue: number; receipts: number }>;
+  topItems: Array<{ name: string; quantity: number; revenue: number; receipts: number }>;
+  /** Best sellers per shift (lunch, dinner...), by revenue. */
+  itemsByShift: Array<{ shift: string; items: Array<{ name: string; quantity: number; revenue: number }> }>;
+  payments: Array<{ method: PaymentMethod; amount: number }>;
 }

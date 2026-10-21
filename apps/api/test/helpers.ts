@@ -20,7 +20,7 @@ export async function resetDatabase() {
   await pool.end();
   await runMigrations(url);
   const { db, pool: seedPool } = createDb(url);
-  const result = await seed(db, { slug: 'test', password: 'secret123' });
+  const result = await seed(db, { slug: 'test', password: 'secret123', demoSales: false });
   await seedPool.end();
   return result;
 }
