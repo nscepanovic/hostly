@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { decodeVl, parseAmount, parseJournal, parseSufLink, parseVerificationPage, ReceiptLinkError, splitUnit } from './suf';
 
 /** A real receipt QR (Novi Sad, 2.4.2026, 98.100,00 RSD); values checked against suf.purs.gov.rs. */
@@ -94,5 +96,26 @@ describe('receipt text parsing', () => {
     const p = parseVerificationPage(html);
     expect(p).toMatchObject({ sellerTin: '114202881', sellerName: '1367517-CARAVAN CORP DOO NOVI SAD', invoiceNumber: 'VQNXFA3S-VQNXFA3S-293', token: '3f1c' });
     expect(parseJournal(p.journal!).items[0]).toMatchObject({ name: 'A & B', total: 10 });
+  });
+});
+
+describe('real verification page (suf.purs.gov.rs, fetched 21.10.2026)', () => {
+  const html = readFileSync(join(__dirname, '__fixtures__', 'suf-verification-page.html'), 'utf8');
+
+  it('reads seller, invoice number and token', () => {
+    expect(parseVerificationPage(html)).toMatchObject({
+      sellerTin: '114202881',
+      sellerName: '1367517-CARAVAN CORP DOO NOVI SAD',
+      sellerAddress: 'ТЕМЕРИНСКА 75',
+      sellerCity: 'НОВИ САД',
+      invoiceNumber: 'VQNXFA3S-VQNXFA3S-293',
+      token: '00cec083-03d0-4242-9e59-1f5111d97d04',
+    });
+  });
+
+  it('reads items and payment from the printed receipt (journal)', () => {
+    const { items, payments } = parseJournal(parseVerificationPage(html).journal!);
+    expect(items).toEqual([{ name: 'Usluge autoservisa', unit: 'kom', unitPrice: 98100, quantity: 1, total: 98100, vatLabel: 'А', vatRate: null, gtin: null }]);
+    expect(payments).toEqual([{ method: 'cash', amount: 98100 }]);
   });
 });
