@@ -7,7 +7,6 @@ import { guestName } from '@/lib/day';
 import { qk, useRestaurant } from '@/lib/queries';
 import { useSocketEvent } from '@/lib/socket';
 import { fmtDateTime } from '@/lib/time';
-import { luxonLocale } from '@/i18n';
 import { useUi } from '@/store/ui';
 import { api } from '@/lib/api';
 
@@ -57,7 +56,7 @@ export function LiveNotifications() {
             {t('priority.newRequestBody', {
               name: guestName(r),
               covers: r.covers,
-              when: restaurant ? fmtDateTime(r.arrivalAt, restaurant.timezone, luxonLocale(i18n.language)) : '',
+              when: restaurant ? fmtDateTime(r.arrivalAt, restaurant.timezone, i18n.language) : '',
             })}
           </>
         ),

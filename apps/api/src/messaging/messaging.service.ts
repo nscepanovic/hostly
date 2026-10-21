@@ -2,12 +2,12 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { desc, eq } from 'drizzle-orm';
 import { DateTime } from 'luxon';
-import type { MessageDto, MessageTemplate } from '@hostly/shared';
+import { LANGUAGE_INFO, type MessageDto, type MessageTemplate } from '@hostly/shared';
 import { env } from '../config/env';
 import { InjectDb, type Db } from '../db/db.module';
 import { messages, reservations, restaurants, type MessageRow } from '../db/schema';
 import { CHANNEL_ADAPTERS, type ChannelAdapter } from './channel';
-import { renderTemplate } from './templates';
+import { messageLocale, renderTemplate } from './templates';
 
 const toDto = (m: MessageRow): MessageDto => ({
   id: m.id,
@@ -49,13 +49,13 @@ export class MessagingService {
       if (!adapter) return null;
 
       const language = r.language;
-      const at = DateTime.fromJSDate(r.arrivalAt).setZone(rest.timezone).setLocale(language === 'sr' ? 'sr-Latn' : 'en-GB');
+      const at = DateTime.fromJSDate(r.arrivalAt).setZone(rest.timezone).setLocale(LANGUAGE_INFO[language].locale);
       const base = env().APP_URL.replace(/\/$/, '');
       const manageUrl = `${base}/r/${r.guestToken}`;
       const content = renderTemplate(template, language, {
-        guestName: [r.firstName, r.lastName].filter(Boolean).join(' ') || (language === 'sr' ? 'goste' : 'guest'),
+        guestName: [r.firstName, r.lastName].filter(Boolean).join(' ') || messageLocale(language).guestFallback,
         restaurantName: rest.name,
-        date: at.toFormat(language === 'sr' ? 'cccc, d. LLLL yyyy.' : 'cccc, d LLLL yyyy'),
+        date: at.toFormat(LANGUAGE_INFO[language].dateLong),
         time: at.toFormat('HH:mm'),
         covers: r.covers,
         manageUrl,

@@ -4,10 +4,12 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { DateTime } from 'luxon';
 import { Camera, CheckCircle2, Globe, Minus, Plus } from 'lucide-react';
-import type { PublicRestaurantInfo, PublicSlot } from '@hostly/shared';
+import { FALLBACK_LANGUAGE, isLanguage, pickLanguage, type PublicRestaurantInfo, type PublicSlot } from '@hostly/shared';
 import { Button } from '@/components/ui/Button';
 import { api, ApiError, errorMessage } from '@/lib/api';
 import { luxonLocale, setLanguage } from '@/i18n';
+import { LanguageSelect } from '@/components/LanguagePicker';
+import { langInfo } from '@/lib/time';
 
 /** Public booking widget: /book/:slug (add ?embed=1 inside an iframe). */
 export default function BookPage() {
@@ -25,8 +27,8 @@ export default function BookPage() {
 
   // Guests see the page in their browser language when it is one we support (?lang= overrides).
   useEffect(() => {
-    const wanted = params.get('lang') ?? (navigator.language.startsWith('sr') || navigator.language.startsWith('hr') || navigator.language.startsWith('bs') ? 'sr' : 'en');
-    if (wanted === 'sr' || wanted === 'en') setLanguage(wanted, false);
+    const fromUrl = params.get('lang');
+    setLanguage(isLanguage(fromUrl) ? fromUrl : (pickLanguage(navigator.languages ?? [navigator.language]) ?? FALLBACK_LANGUAGE), false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -56,7 +58,7 @@ export default function BookPage() {
         ...form,
         notes: form.notes || undefined,
         website: form.website || undefined,
-        language: i18n.language === 'en' ? 'en' : 'sr',
+        language: isLanguage(i18n.language) ? i18n.language : r!.defaultLanguage,
       }),
     onSuccess: () => setDone(true),
     onError: () => void slots.refetch(),
@@ -94,13 +96,7 @@ export default function BookPage() {
               <Globe size={20} />
             </a>
           )}
-          <button
-            type="button"
-            className="h-11 rounded-lg bg-surface-2 px-3 text-sm font-semibold"
-            onClick={() => setLanguage(i18n.language === 'sr' ? 'en' : 'sr', false)}
-          >
-            {i18n.language === 'sr' ? 'EN' : 'SR'}
-          </button>
+          <LanguageSelect persist={false} className="h-11" />
         </div>
       </div>
       {r.intro && <p className="mt-3 text-sm whitespace-pre-line">{r.intro}</p>}
@@ -118,7 +114,7 @@ export default function BookPage() {
           <h2 className="mt-3 text-xl font-bold">{t('book.sent')}</h2>
           <p className="mt-2 text-muted">{t('book.sentBody')}</p>
           <p className="mt-3 font-semibold">
-            {DateTime.fromISO(date).setLocale(luxonLocale(i18n.language)).toFormat(i18n.language === 'sr' ? 'cccc d. LLLL' : 'cccc d LLLL')} · {time} · {covers}
+            {DateTime.fromISO(date).setLocale(luxonLocale(i18n.language)).toFormat(langInfo(i18n.language).dateLong)} · {time} · {covers}
           </p>
           <Button
             className="mt-6"

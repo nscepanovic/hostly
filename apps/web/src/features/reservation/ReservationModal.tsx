@@ -7,6 +7,7 @@ import { Check, UserRound, X, AlertTriangle, Mail } from 'lucide-react';
 import {
   durationForCovers,
   formatPhone,
+  LANGUAGE_INFO,
   LANGUAGES,
   PURPOSES,
   RESERVATION_SOURCES,
@@ -557,10 +558,10 @@ function ReservationForm({ id, draft, onClose }: { id?: string; draft: Reservati
           </Field>
           <Field label={t('reservation.language')}>
             <select className="field" value={form.language} onChange={(e) => set('language', e.target.value)}>
-              <option value="">{t(`language.${restaurant.defaultLanguage}`)} (default)</option>
+              <option value="">{LANGUAGE_INFO[restaurant.defaultLanguage].nativeName} ({t('common.default')})</option>
               {LANGUAGES.map((l) => (
                 <option key={l} value={l}>
-                  {t(`language.${l}`)}
+                  {LANGUAGE_INFO[l].nativeName}
                 </option>
               ))}
             </select>

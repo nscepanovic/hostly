@@ -1,5 +1,5 @@
 import { DateTime } from 'luxon';
-import { hhmmToMinutes, type RestaurantDto } from '@hostly/shared';
+import { FALLBACK_LANGUAGE, hhmmToMinutes, isLanguage, LANGUAGE_INFO, type RestaurantDto } from '@hostly/shared';
 
 type TimeSettings = Pick<RestaurantDto, 'timezone' | 'dayStart'>;
 
@@ -17,10 +17,15 @@ export function dayWindow(r: TimeSettings, date: string) {
 
 export const inZone = (iso: string, tz: string) => DateTime.fromISO(iso, { zone: 'utc' }).setZone(tz);
 export const fmtTime = (iso: string, tz: string) => inZone(iso, tz).toFormat('HH:mm');
-export const fmtDate = (date: string, locale: string) =>
-  DateTime.fromISO(date).setLocale(locale).toFormat('ccc dd.LL.yyyy');
-export const fmtDateTime = (iso: string, tz: string, locale: string) =>
-  inZone(iso, tz).setLocale(locale).toFormat('ccc dd.LL.yyyy HH:mm');
+/** Short date in the UI language's own format, e.g. "pet 23.10.2026" / "Fri 23/10/2026". */
+export const fmtDate = (date: string, lang: string) => {
+  const info = langInfo(lang);
+  return DateTime.fromISO(date).setLocale(info.locale).toFormat(info.dateShort);
+};
+export const fmtDateTime = (iso: string, tz: string, lang: string) => {
+  const info = langInfo(lang);
+  return inZone(iso, tz).setLocale(info.locale).toFormat(`${info.dateShort} HH:mm`);
+};
 
 export const shiftDate = (date: string, days: number) => DateTime.fromISO(date).plus({ days }).toISODate()!;
 
@@ -32,3 +37,6 @@ export function businessLocal(r: TimeSettings, date: string, time: string): stri
   const cal = hhmmToMinutes(time) < hhmmToMinutes(r.dayStart) ? shiftDate(date, 1) : date;
   return localDateTime(cal, time);
 }
+
+/** Date formats and locale of a UI language (unknown codes use the fallback language). */
+export const langInfo = (lang: string) => LANGUAGE_INFO[isLanguage(lang) ? lang : FALLBACK_LANGUAGE];

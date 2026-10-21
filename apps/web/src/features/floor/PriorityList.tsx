@@ -5,7 +5,6 @@ import type { ReservationDto, TableDto } from '@hostly/shared';
 import { confirmDialog } from '@/components/ui/Confirm';
 import { guestName } from '@/lib/day';
 import { fmtDateTime } from '@/lib/time';
-import { luxonLocale } from '@/i18n';
 import { useUi } from '@/store/ui';
 import { ReservationCard } from '../reservation/ReservationCard';
 import { SuggestionSheet } from '../reservation/SuggestionSheet';
@@ -29,7 +28,7 @@ export function PriorityList({ items, tables, timezone }: { items: ReservationDt
     <div className="flex flex-col gap-2">
       {items.map((r) => (
         <div key={r.id}>
-          <div className="mb-1 px-1 text-xs text-muted">{fmtDateTime(r.arrivalAt, timezone, luxonLocale(i18n.language))}</div>
+          <div className="mb-1 px-1 text-xs text-muted">{fmtDateTime(r.arrivalAt, timezone, i18n.language)}</div>
           <ReservationCard
             r={r}
             tableLabels={r.tableIds.map((id) => labelOf.get(id)).join(', ')}

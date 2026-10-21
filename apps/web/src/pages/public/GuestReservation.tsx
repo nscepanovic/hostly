@@ -8,6 +8,7 @@ import type { PublicReservationView } from '@hostly/shared';
 import { Button } from '@/components/ui/Button';
 import { api, errorMessage } from '@/lib/api';
 import { luxonLocale, setLanguage } from '@/i18n';
+import { langInfo } from '@/lib/time';
 
 /** Guest self-service page linked from emails: /r/:token (?action=confirm|cancel). */
 export default function GuestReservationPage() {
@@ -74,7 +75,7 @@ export default function GuestReservationPage() {
               )}
               <div>
                 <div className="font-semibold">{statusText}</div>
-                <div className="text-muted">{t('guest.when', { date: at.toFormat(i18n.language === 'sr' ? 'cccc d. LLLL yyyy.' : 'cccc d LLLL yyyy'), time: at.toFormat('HH:mm'), covers: v.covers })}</div>
+                <div className="text-muted">{t('guest.when', { date: at.toFormat(langInfo(i18n.language).dateLong), time: at.toFormat('HH:mm'), covers: v.covers })}</div>
               </div>
             </div>
             {thanks && <p className="mb-4 font-semibold text-accent">{t('guest.thanks')}</p>}

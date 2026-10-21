@@ -143,6 +143,25 @@ The trade-offs are deliberate. Blind indexes reveal equality: someone with datab
 - **Changing `BLIND_INDEX_KEY`:** the next `pnpm db:migrate` rebuilds all search indexes.
 - `pnpm db:migrate` also encrypts any data still stored in plaintext. Upgrading an existing database is therefore one command.
 
+## Languages
+
+Serbian (default for staff) and English ship today. Everything language-specific
+hangs off one registry, so adding a language (say German, `de`) is:
+
+1. **`packages/shared/src/languages.ts`**: add `'de'` to `LANGUAGES` and an entry
+   to `LANGUAGE_INFO` (native name for pickers, Intl/Luxon locale, long and short
+   date formats, and the browser language codes it should match, e.g. `['de']`).
+   TypeScript then points at every place that needs the new language.
+2. **`apps/web/src/i18n/locales/de.ts`**: copy `en.ts`, translate, register it in
+   `locales/index.ts`. A locale may be partial; missing texts show in English.
+   `missingKeys(LOCALES.de)` lists what is still untranslated.
+3. **`apps/api/src/messaging/templates/de.ts`**: guest emails; register it in
+   `templates/index.ts`. Until then guests with that language get English emails.
+
+No migration is needed: language columns are plain text validated by the API.
+The booking widget picks the guest's browser language when it is supported
+(`?lang=de` forces one); staff choose theirs from the globe button in the menu.
+
 ## Tests
 
 ```bash

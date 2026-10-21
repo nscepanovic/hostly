@@ -34,6 +34,8 @@ const sr: Translation = {
     minutes: 'min',
     offline: 'Nema veze. Ponovno povezivanje…',
     online: 'Uživo',
+    language: 'Jezik',
+    default: 'podrazumevano',
     forceSave: 'Ipak sačuvaj',
   },
   nav: {
@@ -76,7 +78,6 @@ const sr: Translation = {
   source: { online: 'Online', phone: 'Telefon', walk_in: 'Bez rezervacije', staff: 'Osoblje' },
   purpose: { food: 'Hrana', drink: 'Piće', food_drink: 'Hrana i piće' },
   customerType: { regular: 'Običan', vip: 'VIP', svip: 'SVIP', blacklisted: 'Crna lista' },
-  language: { sr: 'Srpski', en: 'Engleski' },
   floor: {
     area: 'Sala',
     booked: 'Rezervisano',

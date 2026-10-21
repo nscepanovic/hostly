@@ -2,11 +2,11 @@ import { useState, type FormEvent } from 'react';
 import { Navigate, NavLink, Route, Routes, useNavigate } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Languages, LogOut, Moon, ShieldCheck, Sun } from 'lucide-react';
+import { LogOut, Moon, ShieldCheck, Sun } from 'lucide-react';
 import type { AdminUserDto } from '@hostly/shared';
 import { Button, IconButton } from '@/components/ui/Button';
 import { api } from '@/lib/api';
-import { setLanguage } from '@/i18n';
+import { LanguageButton } from '@/components/LanguagePicker';
 import { useUi } from '@/store/ui';
 import { aq, useAdminMe } from './queries';
 import { OverviewPage } from './pages/Overview';
@@ -35,7 +35,7 @@ export default function AdminApp() {
 }
 
 function AdminShell({ admin, children }: { admin: AdminUserDto; children: React.ReactNode }) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const navigate = useNavigate();
   const { theme, toggleTheme } = useUi();
@@ -58,9 +58,7 @@ function AdminShell({ admin, children }: { admin: AdminUserDto; children: React.
           <span className="text-lg font-bold">{t('admin.title')}</span>
           <div className="flex-1" />
           <span className="hidden text-sm text-muted sm:inline">{admin.name}</span>
-          <IconButton label="Language" onClick={() => setLanguage(i18n.language === 'sr' ? 'en' : 'sr')}>
-            <Languages size={20} />
-          </IconButton>
+          <LanguageButton />
           <IconButton label="Theme" onClick={toggleTheme}>
             {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
           </IconButton>

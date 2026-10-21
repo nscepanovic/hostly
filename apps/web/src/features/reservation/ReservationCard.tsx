@@ -4,6 +4,7 @@ import { Cake, Crown, Globe, Phone, Footprints, UserRound, Ban } from 'lucide-re
 import { PurposeIcon } from './PurposeIcon';
 import { phoneCountry, type ReservationDto } from '@hostly/shared';
 import { guestName } from '@/lib/day';
+import { useRestaurant } from '@/lib/queries';
 import { fmtTime } from '@/lib/time';
 
 export const SOURCE_ICON: Record<ReservationDto['source'], ReactNode> = {
@@ -56,7 +57,8 @@ export function ReservationCard({
   dragHandle?: ReactNode;
 }) {
   const { t } = useTranslation();
-  const flag = r.language !== 'sr' ? flagEmoji(phoneCountry(r.phone)) || r.language.toUpperCase() : '';
+  const homeLanguage = useRestaurant().data?.defaultLanguage;
+  const flag = r.language !== homeLanguage ? flagEmoji(phoneCountry(r.phone)) || r.language.toUpperCase() : '';
   return (
     <div className="flex items-stretch gap-2 rounded-xl border border-border bg-surface-2 p-2">
       {dragHandle}

@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { and, desc, eq, inArray, sql, type SQL } from 'drizzle-orm';
-import { normalizePhone, type CustomerDto, type CustomerInput } from '@hostly/shared';
+import { LANGUAGE_INFO, normalizePhone, type CustomerDto, type CustomerInput, type Language } from '@hostly/shared';
 import { guestQueryTokens, phoneIndex } from '../common/crypto';
 import { customerIndexes } from './customer-indexes';
 import { rethrowConflict } from '../common/pg-errors';
@@ -48,7 +48,13 @@ const toDto = (c: CustomerRow, st: Stats = NO_STATS): CustomerDto => ({
   },
 });
 
-const collator = new Intl.Collator('sr-Latn', { sensitivity: 'base', numeric: true });
+const collators = new Map<Language, Intl.Collator>();
+/** Name sorting follows the restaurant's language (e.g. č after c in Serbian). */
+const collatorFor = (lang: Language) => {
+  let c = collators.get(lang);
+  if (!c) collators.set(lang, (c = new Intl.Collator(LANGUAGE_INFO[lang].locale, { sensitivity: 'base', numeric: true })));
+  return c;
+};
 
 @Injectable()
 export class CustomersService {
@@ -94,7 +100,9 @@ export class CustomersService {
     restaurantId: string,
     opts: { search?: string; sort?: CustomerSort; dir?: 'asc' | 'desc'; limit: number; offset: number },
   ): Promise<{ total: number; items: CustomerDto[] }> {
-    const conds: SQL[] = [eq(customers.guestBookId, await this.book(restaurantId))];
+    const restaurant = await this.restaurants.get(restaurantId);
+    const collator = collatorFor(restaurant.defaultLanguage);
+    const conds: SQL[] = [eq(customers.guestBookId, restaurant.guestBookId)];
     if (opts.search?.trim()) {
       const groups = guestQueryTokens(opts.search);
       if (!groups.length) return { total: 0, items: [] };

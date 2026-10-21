@@ -32,6 +32,8 @@ const en = {
     minutes: 'min',
     offline: 'Offline. Reconnecting…',
     online: 'Live',
+    language: 'Language',
+    default: 'default',
     forceSave: 'Save anyway',
   },
   nav: {
@@ -74,7 +76,6 @@ const en = {
   source: { online: 'Online', phone: 'Phone', walk_in: 'Walk-in', staff: 'Staff' },
   purpose: { food: 'Food', drink: 'Drink', food_drink: 'Food & drink' },
   customerType: { regular: 'Regular', vip: 'VIP', svip: 'SVIP', blacklisted: 'Blacklisted' },
-  language: { sr: 'Serbian', en: 'English' },
   floor: {
     area: 'Area',
     booked: 'Booked',

@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Plus, Trash2 } from 'lucide-react';
-import { LANGUAGES, type OpeningHours, type RestaurantDto, type RestaurantSettingsInput, type Shift, type UserDto } from '@hostly/shared';
+import { LANGUAGE_INFO, LANGUAGES, type OpeningHours, type RestaurantDto, type RestaurantSettingsInput, type Shift, type UserDto } from '@hostly/shared';
 import { Button, IconButton } from '@/components/ui/Button';
 import { confirmDialog } from '@/components/ui/Confirm';
 import { toast } from '@/components/ui/Toast';
@@ -87,7 +87,7 @@ export default function SettingsPage() {
               <select className="field" value={s.defaultLanguage} onChange={(e) => set('defaultLanguage', e.target.value as RestaurantSettingsInput['defaultLanguage'])}>
                 {LANGUAGES.map((l) => (
                   <option key={l} value={l}>
-                    {t(`language.${l}`)}
+                    {LANGUAGE_INFO[l].nativeName}
                   </option>
                 ))}
               </select>

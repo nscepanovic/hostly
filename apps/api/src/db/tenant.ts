@@ -7,6 +7,9 @@ import { emailIndex } from '../common/crypto';
 import { customerIndexes } from '../customers/customer-indexes';
 
 /** Lunch + dinner every day; owners adjust it in Settings. */
+/** Name of the first area of a new restaurant; English for languages not listed. */
+const DEFAULT_AREA_NAME: Partial<Record<Language, string>> = { sr: 'Sala', en: 'Main room' };
+
 export const DEFAULT_OPENING_HOURS: OpeningHours = Object.fromEntries(
   ['1', '2', '3', '4', '5', '6', '7'].map((d) => [
     d,
@@ -87,7 +90,7 @@ export async function createRestaurant(tx: DbOrTx, input: NewRestaurant) {
 
   const [area] = await tx
     .insert(s.areas)
-    .values({ restaurantId: restaurant.id, name: input.areaName ?? (restaurant.defaultLanguage === 'sr' ? 'Sala' : 'Main room'), sort: 0 })
+    .values({ restaurantId: restaurant.id, name: input.areaName ?? DEFAULT_AREA_NAME[restaurant.defaultLanguage] ?? DEFAULT_AREA_NAME.en!, sort: 0 })
     .returning();
 
   await tx.insert(s.tags).values(DEFAULT_TAGS.map(([kind, label, color]) => ({ restaurantId: restaurant.id, kind, label, color })));

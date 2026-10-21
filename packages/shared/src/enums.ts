@@ -1,8 +1,7 @@
 export const ROLES = ['owner', 'host'] as const;
 export type Role = (typeof ROLES)[number];
 
-export const LANGUAGES = ['sr', 'en'] as const;
-export type Language = (typeof LANGUAGES)[number];
+export { LANGUAGES, type Language } from './languages';
 
 export const RESERVATION_STATUSES = [
   'pending',

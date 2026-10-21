@@ -6,10 +6,10 @@ import type { UserDto } from '@hostly/shared';
 import { Button } from '@/components/ui/Button';
 import { api } from '@/lib/api';
 import { qk, useMe } from '@/lib/queries';
-import { setLanguage } from '@/i18n';
+import { LanguageSelect } from '@/components/LanguagePicker';
 
 export function LoginPage() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
@@ -65,17 +65,8 @@ export function LoginPage() {
         <Button type="submit" variant="primary" size="lg" className="w-full" disabled={busy}>
           {t('login.submit')}
         </Button>
-        <div className="mt-4 flex justify-center gap-2 text-sm">
-          {(['sr', 'en'] as const).map((l) => (
-            <button
-              key={l}
-              type="button"
-              onClick={() => setLanguage(l)}
-              className={`rounded px-2 py-1 ${i18n.language === l ? 'bg-surface-3 text-text' : 'text-muted'}`}
-            >
-              {l.toUpperCase()}
-            </button>
-          ))}
+        <div className="mt-4 flex justify-center">
+          <LanguageSelect />
         </div>
       </form>
     </div>

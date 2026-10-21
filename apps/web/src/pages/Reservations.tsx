@@ -57,6 +57,7 @@ export default function ReservationsPage() {
 
   if (!restaurant) return null;
   const tz = restaurant.timezone;
+  const homeLanguage = restaurant.defaultLanguage;
   const groupTitle = (key: string) =>
     key === 'booked' ? t('floor.upcoming') : key === 'seated' ? t('floor.seated') : key === 'completed' ? t('floor.completed') : t('list.showCancelled');
 
@@ -121,7 +122,7 @@ export default function ReservationsPage() {
                     </thead>
                     <tbody>
                       {items.map((r) => {
-                        const flag = r.language !== 'sr' ? flagEmoji(phoneCountry(r.phone)) || r.language.toUpperCase() : '';
+                        const flag = r.language !== homeLanguage ? flagEmoji(phoneCountry(r.phone)) || r.language.toUpperCase() : '';
                         return (
                           <tr
                             key={r.id}

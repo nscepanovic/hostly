@@ -8,6 +8,7 @@ import type {
   AdminRestaurantDetail,
   AdminRestaurantRow,
   DailyPoint,
+  Language,
   Role,
 } from '@hostly/shared';
 import { emailIndex } from '../common/crypto';
@@ -211,7 +212,7 @@ export class AdminService {
 
   async create(
     admin: AdminUser,
-    input: { name: string; slug: string; ownerName: string; ownerEmail: string; ownerPassword: string; timezone?: string; language?: 'sr' | 'en'; shareGuestsWith?: string },
+    input: { name: string; slug: string; ownerName: string; ownerEmail: string; ownerPassword: string; timezone?: string; language?: Language; shareGuestsWith?: string },
   ) {
     if (!SLUG_RE.test(input.slug)) throw new BadRequestException('Slug: lowercase letters, digits and dashes only');
     const shareWith = input.shareGuestsWith ? await this.row(input.shareGuestsWith) : undefined;

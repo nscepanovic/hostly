@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { CUSTOMER_TYPES, formatPhone, LANGUAGES, type CustomerDto, type CustomerInput } from '@hostly/shared';
+import { CUSTOMER_TYPES, formatPhone, LANGUAGE_INFO, LANGUAGES, type CustomerDto, type CustomerInput } from '@hostly/shared';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { toast } from '@/components/ui/Toast';
@@ -102,7 +102,7 @@ export function CustomerFields({ customer, onSaved, onCancel }: { customer?: Cus
           <option value="">—</option>
           {LANGUAGES.map((l) => (
             <option key={l} value={l}>
-              {t(`language.${l}`)}
+              {LANGUAGE_INFO[l].nativeName}
             </option>
           ))}
         </select>

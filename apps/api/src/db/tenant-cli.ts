@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
 import { parseArgs } from 'node:util';
 import { asc, eq } from 'drizzle-orm';
+import { isLanguage, LANGUAGES } from '@hostly/shared';
 import { env } from '../config/env';
 import { isUniqueViolation } from '../common/pg-errors';
 import { createDb, type Db } from './client';
@@ -11,7 +12,7 @@ const usage = `Hostly tenant administration
 
   pnpm tenant create --name "Kafana Zlatni Ključ" --slug zlatni-kljuc \\
       --owner-email vlasnik@example.com --owner-name "Marko Marković" --password '<min 8 chars>' \\
-      [--timezone Europe/Belgrade] [--language sr|en] [--share-guests-with <slug>]
+      [--timezone Europe/Belgrade] [--language ${LANGUAGES.join('|')}] [--share-guests-with <slug>]
   pnpm tenant share-guests --slug <slug> --with <slug>
       Both restaurants see the same guests from now on. Guests with the same phone are merged.
   pnpm tenant unshare-guests --slug <slug>
@@ -52,13 +53,14 @@ async function main() {
     switch (command) {
       case 'create': {
         if (!v.name || !v.slug || !v['owner-email'] || !v.password) throw new Error(usage);
+        if (v.language !== undefined && !isLanguage(v.language)) throw new Error(`Unknown language "${v.language}". Available: ${LANGUAGES.join(', ')}`);
         const shareWith = v['share-guests-with'] ? await bySlug(db, v['share-guests-with']) : undefined;
         const { restaurant, owner } = await db.transaction((tx) =>
           createRestaurant(tx, {
             name: v.name!,
             slug: v.slug!,
             timezone: v.timezone,
-            defaultLanguage: v.language === 'en' ? 'en' : 'sr',
+            defaultLanguage: isLanguage(v.language) ? v.language : undefined,
             owner: { email: v['owner-email']!, name: v['owner-name'] ?? v['owner-email']!, password: v.password! },
             guestBookId: shareWith?.guestBookId,
           }),

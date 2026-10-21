@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Link2, Plus, Search, Wifi } from 'lucide-react';
-import type { AdminRestaurantDetail, AdminRestaurantRow } from '@hostly/shared';
+import { LANGUAGE_INFO, LANGUAGES, type AdminRestaurantDetail, type AdminRestaurantRow } from '@hostly/shared';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { toast } from '@/components/ui/Toast';
@@ -160,8 +160,11 @@ function CreateRestaurant({ restaurants, onClose, onCreated }: { restaurants: Ad
         <label className="block">
           <span className="label">{t('admin.language')}</span>
           <select className="field" value={f.language} onChange={(e) => setF({ ...f, language: e.target.value })}>
-            <option value="sr">{t('language.sr')}</option>
-            <option value="en">{t('language.en')}</option>
+            {LANGUAGES.map((l) => (
+              <option key={l} value={l}>
+                {LANGUAGE_INFO[l].nativeName}
+              </option>
+            ))}
           </select>
         </label>
         <label className="block">

@@ -19,7 +19,6 @@ import {
   Sun,
   GanttChart,
   Users,
-  Languages,
 } from 'lucide-react';
 import type { UserDto } from '@hostly/shared';
 import { api } from '@/lib/api';
@@ -27,7 +26,7 @@ import { useDayReservations } from '@/lib/day';
 import { qk, useRestaurant } from '@/lib/queries';
 import { useConnection } from '@/lib/socket';
 import { fmtDate, shiftDate, todayBusinessDate } from '@/lib/time';
-import { luxonLocale, setLanguage } from '@/i18n';
+import { LanguageButton, LanguageList } from './LanguagePicker';
 import { useUi } from '@/store/ui';
 import { IconButton } from './ui/Button';
 import { Modal } from './ui/Modal';
@@ -43,7 +42,7 @@ interface NavItem {
 const DAY_ROUTES = ['/', '/reservations', '/timeline'];
 
 export function AppShell({ user }: { user: UserDto }) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const navigate = useNavigate();
   const { pathname } = useLocation();
@@ -67,11 +66,9 @@ export function AppShell({ user }: { user: UserDto }) {
     qc.clear();
     navigate('/login');
   };
-  const toggleLanguage = () => setLanguage(i18n.language === 'sr' ? 'en' : 'sr');
 
   const utilities = [
     { key: 'theme', icon: theme === 'dark' ? <Sun size={22} /> : <Moon size={22} />, label: t('nav.theme'), onClick: toggleTheme },
-    { key: 'lang', icon: <Languages size={22} />, label: i18n.language === 'sr' ? 'English' : 'Srpski', onClick: toggleLanguage },
     { key: 'help', icon: <CircleHelp size={22} />, label: t('nav.help'), onClick: () => setHelpOpen(true) },
     { key: 'logout', icon: <LogOut size={22} />, label: t('nav.logout'), onClick: logout },
   ];
@@ -99,6 +96,7 @@ export function AppShell({ user }: { user: UserDto }) {
           </NavLink>
         ))}
         <div className="flex-1" />
+        <LanguageButton className="text-muted" />
         {utilities.map((u) => (
           <IconButton key={u.key} label={u.label} onClick={u.onClick} className="text-muted">
             {u.icon}
@@ -158,6 +156,10 @@ export function AppShell({ user }: { user: UserDto }) {
               {u.label}
             </button>
           ))}
+          <div className="mt-2 border-t border-border pt-2">
+            <div className="label px-3">{t('common.language')}</div>
+            <LanguageList onPicked={() => setMoreOpen(false)} />
+          </div>
         </div>
       </Modal>
 
@@ -231,7 +233,7 @@ function TopBar({ title, showDay }: { title: string; showDay: boolean }) {
               onClick={() => dateInput.current?.showPicker?.()}
             >
               <CalendarDays size={18} className="text-muted" />
-              {fmtDate(date, luxonLocale(i18n.language))}
+              {fmtDate(date, i18n.language)}
               <input
                 ref={dateInput}
                 type="date"
