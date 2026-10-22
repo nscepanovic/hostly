@@ -1,13 +1,12 @@
 import { useMemo, type ReactNode } from 'react';
 import { usePanZoom } from './usePanZoom';
+import { ZoomControls } from './ZoomControls';
 import { useTranslation } from 'react-i18next';
-import { LocateFixed, ZoomIn, ZoomOut } from 'lucide-react';
 import type { ReservationDto, TableDto } from '@hostly/shared';
 import { guestName } from '@/lib/day';
 import { fmtTime } from '@/lib/time';
 import { STATE_FILL, type TableStatus } from '@/lib/tableState';
 import { useElementSize } from '@/lib/useElementSize';
-import { IconButton } from '../ui/Button';
 import { TableShape, tablesBounds } from './TableShape';
 
 export function FloorCanvas({
@@ -73,21 +72,7 @@ export function FloorCanvas({
     <div className="flex h-full w-full flex-col">
       <div className="flex shrink-0 items-center gap-2 px-2 pt-2">
         <div className="min-w-0 flex-1">{header}</div>
-        <div className="flex items-center gap-0.5 rounded-xl border border-border bg-surface p-0.5">
-          {toolbar}
-          <IconButton label={t('floor.zoomOut')} onClick={view.zoomOut}>
-            <ZoomOut size={20} />
-          </IconButton>
-          <span className="w-12 text-center text-xs text-muted tabular-nums" aria-live="polite">
-            {Math.round(view.zoom * 100)}%
-          </span>
-          <IconButton label={t('floor.zoomIn')} onClick={view.zoomIn}>
-            <ZoomIn size={20} />
-          </IconButton>
-          <IconButton label={t('floor.fit')} onClick={view.reset}>
-            <LocateFixed size={20} />
-          </IconButton>
-        </div>
+        <ZoomControls view={view}>{toolbar}</ZoomControls>
       </div>
       {/* Drag to pan, pinch or wheel to zoom (see usePanZoom). */}
       <div ref={containerRef} className="min-h-0 w-full flex-1 cursor-grab touch-none overflow-hidden active:cursor-grabbing">

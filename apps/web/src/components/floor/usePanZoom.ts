@@ -23,12 +23,27 @@ const TAP_SLOP = 6;
 
 const fitCamera = (b: Bounds): Camera => ({ cx: b.x + b.w / 2, cy: b.y + b.h / 2, z: 1 });
 
+export interface PanZoomOptions {
+  /** Whether a one-finger drag starting on `target` pans (the editor drags tables instead). */
+  canPan?: (target: EventTarget | null) => boolean;
+}
+
+export type PanZoom = ReturnType<typeof usePanZoom>;
+
 /**
  * Map-style camera for an SVG plan: drag to pan, wheel / pinch / buttons to zoom
  * around a point, `reset()` to fit and centre. Returns the SVG viewBox.
  * The camera resets whenever `resetKey` changes (e.g. another area is shown).
  */
-export function usePanZoom(containerRef: RefObject<HTMLDivElement | null>, size: { width: number; height: number }, bounds: Bounds, resetKey: string) {
+export function usePanZoom(
+  containerRef: RefObject<HTMLDivElement | null>,
+  size: { width: number; height: number },
+  bounds: Bounds,
+  resetKey: string,
+  options: PanZoomOptions = {},
+) {
+  const canPan = useRef(options.canPan);
+  canPan.current = options.canPan;
   const [cam, setCam] = useState<Camera>(() => fitCamera(bounds));
   const camRef = useRef(cam);
   camRef.current = cam;
@@ -92,6 +107,8 @@ export function usePanZoom(containerRef: RefObject<HTMLDivElement | null>, size:
 
     const onDown = (e: PointerEvent) => {
       if (e.button !== 0 && e.pointerType === 'mouse') return;
+      // A second finger always joins (pinch); a first one only pans where allowed.
+      if (!pointers.current.size && canPan.current && !canPan.current(e.target)) return;
       pointers.current.set(e.pointerId, local(e));
       if (pointers.current.size === 1) {
         dragged.current = false;
@@ -150,6 +167,8 @@ export function usePanZoom(containerRef: RefObject<HTMLDivElement | null>, size:
   return {
     viewBox,
     zoom: cam.z,
+    /** World point at the centre of the view (e.g. where to drop a new table). */
+    center: { x: cam.cx, y: cam.cy },
     zoomIn: () => zoomAt(1.3, size.width / 2, size.height / 2),
     zoomOut: () => zoomAt(1 / 1.3, size.width / 2, size.height / 2),
     reset,

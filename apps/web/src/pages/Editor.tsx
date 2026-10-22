@@ -5,6 +5,9 @@ import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Circle, Pencil, Plus, RotateCw, Save, Square, Trash2, Undo2 } from 'lucide-react';
 import type { AreaDto, JoinGroupDto, TableDto, TableShape as Shape } from '@hostly/shared';
 import { TableShape } from '@/components/floor/TableShape';
+import { ZoomControls } from '@/components/floor/ZoomControls';
+import { usePanZoom } from '@/components/floor/usePanZoom';
+import { useElementSize } from '@/lib/useElementSize';
 import { Button, IconButton } from '@/components/ui/Button';
 import { confirmDialog } from '@/components/ui/Confirm';
 import { Segmented } from '@/components/ui/Segmented';
@@ -82,6 +85,14 @@ export default function EditorPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tables.length, area?.id]);
 
+  // Pan / zoom like the floor plan; dragging a table moves the table, dragging empty floor pans.
+  const [canvasRef, canvasSize] = useElementSize<HTMLDivElement>();
+  const bounds = useMemo(() => ({ x: 0, y: 0, w: viewBox.w, h: viewBox.h }), [viewBox]);
+  const view = usePanZoom(canvasRef, canvasSize, bounds, area?.id ?? '', {
+    canPan: (target) => !(target instanceof Element && target.closest('[data-no-pan]')),
+  });
+  const vb = view.viewBox;
+
   const commit = (next: DraftTable[], nextDeleted = deleted) => {
     setHistory((h) => [...h.slice(-50), { tables, deleted }]);
     setTables(next);
@@ -136,8 +147,9 @@ export default function EditorPage() {
     if (!area) return;
     const size = templateSize(shape, seats);
     const key = `new-${++keySeq}`;
-    // Drop new tables near the top-left free-ish spot; staff then drag them into place.
+    // Drop new tables in the middle of what is on screen (cascaded so they don't stack exactly).
     const offset = (tables.length % 6) * 30;
+    const at = { x: Math.max(0, view.center.x - size.w / 2), y: Math.max(0, view.center.y - size.h / 2) };
     commit([
       ...tables,
       {
@@ -145,8 +157,8 @@ export default function EditorPage() {
         areaId: area.id,
         label: nextLabel(tables),
         shape,
-        x: snap(40 + offset),
-        y: snap(40 + offset),
+        x: snap(at.x + offset),
+        y: snap(at.y + offset),
         ...size,
         rotation: 0,
         minSeats: MIN_FOR[seats] ?? 1,
@@ -320,26 +332,37 @@ export default function EditorPage() {
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-        <div className="min-h-0 flex-1 overflow-auto">
+        <div ref={canvasRef} className="relative min-h-0 flex-1 cursor-grab touch-none overflow-hidden active:cursor-grabbing">
+          <ZoomControls view={view} className="absolute top-2 right-2 z-10 shadow-lg" />
           <svg
             ref={svgRef}
-            viewBox={`0 0 ${viewBox.w} ${viewBox.h}`}
-            className="h-full w-full touch-none select-none"
+            viewBox={`${vb.x} ${vb.y} ${vb.w} ${vb.h}`}
+            preserveAspectRatio="xMidYMid meet"
+            className="block h-full w-full select-none"
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
-            onPointerDown={() => tab === 'tables' && setSelected(null)}
+            // A tap on empty floor deselects; a pan does not (the click after a drag is swallowed).
+            onClick={() => tab === 'tables' && setSelected(null)}
           >
             <defs>
               <pattern id="egrid" width={GRID * 2} height={GRID * 2} patternUnits="userSpaceOnUse">
                 <circle cx="1" cy="1" r="1.2" fill="var(--color-border)" />
               </pattern>
             </defs>
-            <rect width={viewBox.w} height={viewBox.h} fill="url(#egrid)" />
+            {/* The dotted floor fills whatever is visible, however far out you zoom. */}
+            <rect x={vb.x} y={vb.y} width={vb.w} height={vb.h} fill="url(#egrid)" />
             {tables.map((tb) => {
               const isSel = tb.key === selected;
               const inGroup = !!tb.id && groupTableIds.has(tb.id);
               return (
-                <g key={tb.key} transform={`translate(${tb.x} ${tb.y})`} onPointerDown={(e) => onTableDown(e, tb)} className="cursor-move">
+                <g
+                  key={tb.key}
+                  data-no-pan
+                  transform={`translate(${tb.x} ${tb.y})`}
+                  onPointerDown={(e) => onTableDown(e, tb)}
+                  onClick={(e) => e.stopPropagation()}
+                  className="cursor-move"
+                >
                   <TableShape
                     table={tb}
                     fill={inGroup ? 'var(--color-st-pending)' : isSel ? 'var(--color-st-reserved)' : 'var(--color-st-free)'}
