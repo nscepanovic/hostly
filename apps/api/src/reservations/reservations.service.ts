@@ -26,6 +26,7 @@ import { RealtimeService } from '../realtime/realtime.service';
 import { RestaurantService } from '../restaurant/restaurant.service';
 import { AvailabilityService } from './availability.service';
 import { WaitingService } from '../waiting/waiting.service';
+import { PushService } from '../push/push.service';
 
 export const newGuestToken = () => randomBytes(24).toString('base64url');
 const rangeLiteral = (from: Date, to: Date) => `[${from.toISOString()},${to.toISOString()})`;
@@ -51,6 +52,7 @@ export class ReservationsService {
     private readonly realtime: RealtimeService,
     private readonly messaging: MessagingService,
     private readonly waiting: WaitingService,
+    private readonly push: PushService,
   ) {}
 
   // ---------- reads ----------
@@ -327,7 +329,10 @@ export class ReservationsService {
 
     this.realtime.emit(restaurant.id, 'reservation.created', { reservation: dto });
     if (dto.tableIds.length) this.realtime.emit(restaurant.id, 'table.status', { tableIds: dto.tableIds });
-    if (dto.status === 'pending' && dto.source === 'online') this.realtime.emit(restaurant.id, 'priority.new', { reservation: dto });
+    if (dto.status === 'pending' && dto.source === 'online') {
+      this.realtime.emit(restaurant.id, 'priority.new', { reservation: dto });
+      this.push.newRequest(restaurant, dto);
+    }
     if (opts.sendRequestReceived) void this.messaging.notifyReservation(dto.id, 'request_received');
     return dto;
   }
@@ -533,6 +538,7 @@ export class ReservationsService {
     if (row.status === 'cancelled') return row;
     if (!['pending', 'confirmed'].includes(row.status)) throw new BadRequestException('This reservation can no longer be cancelled');
     await this.changeStatus({ id: null, restaurantId: row.restaurantId }, row.id, 'cancelled');
+    this.push.guestCancelled(await this.restaurants.get(row.restaurantId), row);
     return this.findByToken(token);
   }
 

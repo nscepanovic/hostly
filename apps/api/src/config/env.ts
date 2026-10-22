@@ -57,6 +57,11 @@ const envSchema = z.object({
   /** HMAC key for searchable blind indexes, base64(32 bytes). Never change it without re-indexing. */
   BLIND_INDEX_KEY: z.string().default(''),
   PUBLIC_RATE_LIMIT_PER_MIN: z.coerce.number().int().default(20),
+  /** Web Push (VAPID) keys: `npx web-push generate-vapid-keys`. Without them, production sends no push. */
+  VAPID_PUBLIC_KEY: z.string().default(''),
+  VAPID_PRIVATE_KEY: z.string().default(''),
+  /** Contact for push services, "mailto:" or https URL. */
+  VAPID_SUBJECT: z.string().default('mailto:support@hostly.app'),
 });
 
 export type Env = z.infer<typeof envSchema>;

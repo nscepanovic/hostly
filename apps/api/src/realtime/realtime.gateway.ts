@@ -1,5 +1,5 @@
 import { Logger } from '@nestjs/common';
-import { OnGatewayConnection, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
+import { ConnectedSocket, MessageBody, OnGatewayConnection, SubscribeMessage, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import { parse as parseCookie } from 'cookie';
 import type { Server, Socket } from 'socket.io';
 import { AuthService } from '../auth/auth.service';
@@ -27,6 +27,26 @@ export class RealtimeGateway implements OnGatewayConnection {
     return out;
   }
 
+  /**
+   * Devices that have Hostly on screen right now. They get in-app pop-ups, so
+   * push notifications skip them. Hidden apps report it and disconnect soon after.
+   */
+  visibleDevices(restaurantId: string): Set<string> {
+    const out = new Set<string>();
+    const ids = this.server?.sockets.adapter.rooms.get(restaurantRoom(restaurantId)) ?? new Set<string>();
+    for (const id of ids) {
+      const s = this.server.sockets.sockets.get(id);
+      if (s?.data.deviceId && s.data.visible) out.add(s.data.deviceId as string);
+    }
+    return out;
+  }
+
+  /** The app was hidden or shown again (tablet asleep, other app in front). */
+  @SubscribeMessage('presence')
+  presence(@ConnectedSocket() socket: Socket, @MessageBody() body: { visible?: unknown }) {
+    socket.data.visible = body?.visible !== false;
+  }
+
   /** Drops every live connection of a restaurant (used on suspension). */
   disconnectRestaurant(restaurantId: string) {
     this.server?.in(restaurantRoom(restaurantId)).disconnectSockets(true);
@@ -43,6 +63,9 @@ export class RealtimeGateway implements OnGatewayConnection {
       return;
     }
     socket.data.user = user;
+    const auth = (socket.handshake.auth ?? {}) as { deviceId?: unknown; visible?: unknown };
+    socket.data.deviceId = typeof auth.deviceId === 'string' ? auth.deviceId.slice(0, 64) : null;
+    socket.data.visible = auth.visible !== false;
     await socket.join(restaurantRoom(user.restaurantId));
     this.logger.debug(`socket ${socket.id} joined ${user.restaurantId}`);
   }

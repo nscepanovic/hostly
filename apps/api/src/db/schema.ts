@@ -18,6 +18,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import type {
   BrandingImage,
+  PushEvent,
   ReceiptPayment,
   ReceiptStatus,
   ReceiptTransactionType,
@@ -163,6 +164,28 @@ export const receiptItems = pgTable(
     gtin: text('gtin'),
   },
   (t) => [index('receipt_items_receipt_idx').on(t.receiptId), index('receipt_items_restaurant_idx').on(t.restaurantId)],
+);
+
+/** Web Push subscriptions of staff devices (one per browser/tablet). */
+export const pushSubscriptions = pgTable(
+  'push_subscriptions',
+  {
+    id: id(),
+    restaurantId: restaurantRef(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    /** Push service URL; unique per browser profile. */
+    endpoint: text('endpoint').notNull(),
+    p256dh: text('p256dh').notNull(),
+    auth: text('auth').notNull(),
+    deviceId: text('device_id').notNull(),
+    language: text('language').$type<Language>().notNull(),
+    events: text('events').array().$type<PushEvent[]>().notNull(),
+    createdAt: createdAt(),
+    lastSentAt: timestamp('last_sent_at', { withTimezone: true }),
+  },
+  (t) => [uniqueIndex('push_subscriptions_endpoint_uq').on(t.endpoint), index('push_subscriptions_restaurant_idx').on(t.restaurantId)],
 );
 
 export const users = pgTable(
@@ -420,3 +443,4 @@ export type MessageRow = typeof messages.$inferSelect;
 
 export type ReceiptRow = typeof receipts.$inferSelect;
 export type ReceiptItemRow = typeof receiptItems.$inferSelect;
+export type PushSubscriptionRow = typeof pushSubscriptions.$inferSelect;

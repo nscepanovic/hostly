@@ -2,6 +2,7 @@ import { z } from 'zod';
 import {
   CUSTOMER_TYPES,
   LANGUAGES,
+  PUSH_EVENTS,
   PURPOSES,
   RESERVATION_SOURCES,
   RESERVATION_STATUSES,
@@ -312,3 +313,13 @@ export type ReceiptScanInput = z.infer<typeof receiptScanSchema>;
 export const receiptAssignSchema = z.object({ reservationId: z.uuid().nullable() });
 
 export const analyticsQuerySchema = z.object({ from: isoDate, to: isoDate });
+
+export const pushSubscriptionSchema = z.object({
+  endpoint: z.url().max(2000),
+  keys: z.object({ p256dh: z.string().min(1).max(200), auth: z.string().min(1).max(100) }),
+  /** Stable per browser/tablet; lets the server skip devices that have Hostly on screen. */
+  deviceId: z.string().min(8).max(64),
+  language: z.enum(LANGUAGES),
+  events: z.array(z.enum(PUSH_EVENTS)).max(PUSH_EVENTS.length),
+});
+export type PushSubscriptionInput = z.infer<typeof pushSubscriptionSchema>;

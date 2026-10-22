@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -p tsconfig.json --noEmit && vite build",
+    "build": "tsc -p tsconfig.json --noEmit && tsc -p src/sw/tsconfig.json && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p src/sw/tsconfig.json",
     "test": "vitest run"
   },
   "dependencies": {
@@ -23,6 +23,9 @@
     "react-i18next": "^15.7.0",
     "react-router": "^7.9.0",
     "socket.io-client": "^4.8.1",
+    "workbox-core": "7.4.1",
+    "workbox-precaching": "7.4.1",
+    "workbox-routing": "7.4.1",
     "zod": "^4.1.0",
     "zustand": "^5.0.8"
   },

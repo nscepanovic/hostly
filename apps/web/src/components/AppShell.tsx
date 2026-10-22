@@ -1,8 +1,9 @@
-import { useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import {
+  Bell,
   CalendarDays,
   ChartColumn,
   ChevronLeft,
@@ -29,6 +30,8 @@ import { useConnection } from '@/lib/socket';
 import { fmtDate, shiftDate, todayBusinessDate } from '@/lib/time';
 import { LanguageButton, LanguageList } from './LanguagePicker';
 import { useUi } from '@/store/ui';
+import { usePushSync } from '@/lib/push';
+import { NotificationsDialog, usePushNudge } from '@/features/notifications/NotificationsDialog';
 import { IconButton } from './ui/Button';
 import { Modal } from './ui/Modal';
 
@@ -43,10 +46,31 @@ interface NavItem {
 const DAY_ROUTES = ['/', '/reservations', '/timeline'];
 
 export function AppShell({ user }: { user: UserDto }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const qc = useQueryClient();
   const navigate = useNavigate();
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
+  const [notifOpen, setNotifOpen] = useState(false);
+  const pushNudge = usePushNudge();
+  usePushSync(user.id, i18n.language);
+
+  // Notification taps open "/?reservation=<id>&panel=priority" (or arrive as a message from the service worker).
+  useEffect(() => {
+    const params = new URLSearchParams(search);
+    const id = params.get('reservation');
+    const panel = params.get('panel');
+    if (!id && !panel) return;
+    if (panel === 'booked' || panel === 'waiting' || panel === 'priority') useUi.getState().setPanelTab(panel);
+    if (id) useUi.getState().openReservation(id);
+    navigate(pathname, { replace: true });
+  }, [search, pathname, navigate]);
+  useEffect(() => {
+    const onMessage = (e: MessageEvent) => {
+      if (e.data?.type === 'hostly:navigate' && typeof e.data.url === 'string') navigate(e.data.url);
+    };
+    navigator.serviceWorker?.addEventListener('message', onMessage);
+    return () => navigator.serviceWorker?.removeEventListener('message', onMessage);
+  }, [navigate]);
   const theme = useUi((s) => s.theme);
   const toggleTheme = useUi((s) => s.toggleTheme);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -70,6 +94,17 @@ export function AppShell({ user }: { user: UserDto }) {
   };
 
   const utilities = [
+    {
+      key: 'notifications',
+      icon: (
+        <span className="relative">
+          <Bell size={22} />
+          {pushNudge && <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-accent" />}
+        </span>
+      ),
+      label: t('push.title'),
+      onClick: () => setNotifOpen(true),
+    },
     { key: 'theme', icon: theme === 'dark' ? <Sun size={22} /> : <Moon size={22} />, label: t('nav.theme'), onClick: toggleTheme },
     { key: 'help', icon: <CircleHelp size={22} />, label: t('nav.help'), onClick: () => setHelpOpen(true) },
     { key: 'logout', icon: <LogOut size={22} />, label: t('nav.logout'), onClick: logout },
@@ -164,6 +199,8 @@ export function AppShell({ user }: { user: UserDto }) {
           </div>
         </div>
       </Modal>
+
+      <NotificationsDialog open={notifOpen} onClose={() => setNotifOpen(false)} />
 
       <Modal open={helpOpen} onClose={() => setHelpOpen(false)} title={t('help.title')} size="sm">
         <p className="leading-relaxed text-muted">{t('help.body')}</p>

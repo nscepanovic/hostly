@@ -3,6 +3,7 @@ import { and, asc, eq, inArray } from 'drizzle-orm';
 import { normalizePhone, type WaitingEntryDto, type WaitingEntryInput, type WaitingStatus } from '@hostly/shared';
 import { InjectDb, type Db } from '../db/db.module';
 import { tables, waitingEntries, type WaitingRow } from '../db/schema';
+import { PushService } from '../push/push.service';
 import { RealtimeService } from '../realtime/realtime.service';
 import { RestaurantService } from '../restaurant/restaurant.service';
 import { AvailabilityService } from '../reservations/availability.service';
@@ -25,6 +26,7 @@ export class WaitingService {
     private readonly realtime: RealtimeService,
     private readonly restaurants: RestaurantService,
     private readonly availability: AvailabilityService,
+    private readonly push: PushService,
   ) {}
 
   async list(restaurantId: string): Promise<WaitingEntryDto[]> {
@@ -96,6 +98,7 @@ export class WaitingService {
       if (pick) {
         const suggestion = { entry, tableIds: pick.map((t) => t.id), labels: pick.map((t) => t.label) };
         this.realtime.emit(restaurantId, 'waiting.suggest', suggestion);
+        this.push.tableFree(restaurantId, entry, suggestion.labels);
         return suggestion;
       }
     }

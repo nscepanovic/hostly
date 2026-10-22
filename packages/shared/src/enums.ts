@@ -68,3 +68,7 @@ export type ReceiptStatus = (typeof RECEIPT_STATUSES)[number];
 export type ReceiptTransactionType = 'sale' | 'refund';
 export const PAYMENT_METHODS = ['cash', 'card', 'transfer', 'check', 'voucher', 'instant', 'other'] as const;
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
+
+/** Events staff can get as push notifications while Hostly is closed or in the background. */
+export const PUSH_EVENTS = ['new_request', 'table_free', 'guest_cancelled'] as const;
+export type PushEvent = (typeof PUSH_EVENTS)[number];

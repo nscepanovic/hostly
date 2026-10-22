@@ -143,6 +143,23 @@ The trade-offs are deliberate. Blind indexes reveal equality: someone with datab
 - **Changing `BLIND_INDEX_KEY`:** the next `pnpm db:migrate` rebuilds all search indexes.
 - `pnpm db:migrate` also encrypts any data still stored in plaintext. Upgrading an existing database is therefore one command.
 
+## Staff notifications (live updates + push)
+
+- **App on screen:** a WebSocket keeps every tablet live (floor plan, lists,
+  pop-ups for new requests and free tables).
+- **App hidden or tablet asleep:** the app tells the server right away and
+  drops the connection after 30 s, so idle tablets don't hold the server.
+  Coming back reconnects and refetches everything.
+- **Push notifications** (Web Push) reach devices that don't have Hostly on
+  screen: new online request, table free for someone waiting, guest cancelled.
+  Tapping one opens the right screen. Each user turns them on per device with
+  the bell button and picks the events; devices showing the app are skipped.
+
+Requirements: HTTPS (or localhost) and the built app (the service worker isn't
+active in `pnpm dev`). On iPad/iPhone, push works only for Hostly added to the
+Home Screen (Share → Add to Home Screen, iPadOS 16.4+). In production set the
+`VAPID_*` keys; without them push stays off.
+
 ## Fiscal receipts and analytics (Serbia)
 
 When a table finishes, staff are offered **Scan receipt**. They can also do it
@@ -219,6 +236,7 @@ See `.env.example` for the full list. The important ones:
 | `SMTP_*`, `MAIL_FROM`       | SMTP. For Resend: host `smtp.resend.com`, user `resend`, pass = API key  |
 | `REMINDERS_ENABLED`         | Day-before reminder emails (checked every 30 min)                        |
 | `PUBLIC_RATE_LIMIT_PER_MIN` | Booking/cancel requests per IP per minute on the public widget           |
+| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | Web Push keys (`npx web-push generate-vapid-keys`). Never change them once devices have subscribed |
 
 ## Deploy (single server, pm2, Cloudflare)
 

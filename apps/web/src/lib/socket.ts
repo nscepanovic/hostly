@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { io, type Socket } from 'socket.io-client';
 import { create } from 'zustand';
 import { WS_EVENTS, type WsEventPayloads } from '@hostly/shared';
+import { deviceId } from './device';
 import { qk } from './queries';
 
 export const useConnection = create<{ connected: boolean }>(() => ({ connected: false }));
@@ -22,12 +23,20 @@ export function useSocketEvent<E extends keyof WsEventPayloads>(event: E, fn: Li
   }, [event, fn]);
 }
 
+/** How long a hidden app stays connected (quick app switches don't reconnect). */
+const HIDDEN_DISCONNECT_MS = 30_000;
+
 /** One socket per signed-in session; every event invalidates the matching TanStack caches. */
 export function useRealtime(enabled: boolean) {
   const qc = useQueryClient();
   useEffect(() => {
     if (!enabled) return;
-    const socket: Socket = io({ path: '/socket.io', withCredentials: true, transports: ['websocket', 'polling'] });
+    const socket: Socket = io({
+      path: '/socket.io',
+      withCredentials: true,
+      transports: ['websocket', 'polling'],
+      auth: { deviceId: deviceId(), visible: !document.hidden },
+    });
     const invalidateReservations = () => {
       void qc.invalidateQueries({ queryKey: qk.reservationsAll });
       void qc.invalidateQueries({ queryKey: qk.priority });
@@ -72,7 +81,28 @@ export function useRealtime(enabled: boolean) {
     });
     socket.on('disconnect', () => useConnection.setState({ connected: false }));
     socket.on('auth.error', () => void qc.invalidateQueries({ queryKey: qk.me }));
+
+    // Hidden app (tablet asleep, another app in front): tell the server at once, so
+    // important events come as push notifications, and drop the connection after a
+    // grace period, so idle tablets don't hold the server. Back on screen: reconnect,
+    // and the 'connect' handler refetches whatever changed meanwhile.
+    let hideTimer: ReturnType<typeof setTimeout> | undefined;
+    const onVisibility = () => {
+      const visible = !document.hidden;
+      socket.auth = { deviceId: deviceId(), visible };
+      clearTimeout(hideTimer);
+      if (visible) {
+        if (socket.connected) socket.emit('presence', { visible: true });
+        else socket.connect();
+      } else {
+        if (socket.connected) socket.emit('presence', { visible: false });
+        hideTimer = setTimeout(() => socket.disconnect(), HIDDEN_DISCONNECT_MS);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
     return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      clearTimeout(hideTimer);
       socket.disconnect();
       useConnection.setState({ connected: false });
     };

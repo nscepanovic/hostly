@@ -19,6 +19,10 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
+      // Own service worker (src/sw/sw.ts) for push notifications; Workbox still precaches the app.
+      strategies: 'injectManifest',
+      srcDir: 'src/sw',
+      filename: 'sw.ts',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {
         name: 'Hostly',
@@ -35,9 +39,7 @@ export default defineConfig({
           { src: 'pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
-      workbox: {
-        navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/api\//, /^\/socket\.io\//],
+      injectManifest: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2,mp3}'],
       },
     }),

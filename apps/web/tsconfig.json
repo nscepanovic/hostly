@@ -2,7 +2,11 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "lib": [
+      "ES2023",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "jsx": "react-jsx",
@@ -10,8 +14,24 @@
     "isolatedModules": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "types": ["vite/client", "vite-plugin-pwa/client"],
-    "paths": { "@hostly/shared": ["../../packages/shared/src/index.ts"], "@/*": ["./src/*"] }
+    "types": [
+      "vite/client",
+      "vite-plugin-pwa/client"
+    ],
+    "paths": {
+      "@hostly/shared": [
+        "../../packages/shared/src/index.ts"
+      ],
+      "@/*": [
+        "./src/*"
+      ]
+    }
   },
-  "include": ["src", "vite.config.ts"]
+  "include": [
+    "src",
+    "vite.config.ts"
+  ],
+  "exclude": [
+    "src/sw"
+  ]
 }

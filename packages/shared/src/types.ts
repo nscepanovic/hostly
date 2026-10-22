@@ -1,4 +1,5 @@
 import type {
+  PushEvent,
   PaymentMethod,
   ReceiptStatus,
   ReceiptTransactionType,
@@ -393,4 +394,11 @@ export interface AnalyticsDto {
   /** Best sellers per shift (lunch, dinner...), by revenue. */
   itemsByShift: Array<{ shift: string; items: Array<{ name: string; quantity: number; revenue: number }> }>;
   payments: Array<{ method: PaymentMethod; amount: number }>;
+}
+
+export interface PushStatusDto {
+  /** VAPID public key for PushManager.subscribe; null when push is not configured on the server. */
+  publicKey: string | null;
+  /** This device's subscription, if any. */
+  subscription: { endpoint: string; events: PushEvent[] } | null;
 }
